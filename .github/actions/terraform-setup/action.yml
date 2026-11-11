@@ -1,0 +1,70 @@
+name: Terraform setup
+description: >-
+  Installs Terraform and gives the job one provider cache. With an environment,
+  it also signs in to that environment's AWS account through OIDC and
+  initialises the root module on the account's state backend.
+
+inputs:
+  terraform-version:
+    description: Terraform version to install.
+    required: true
+  environment:
+    description: dev or prod. Left empty by a job that needs no AWS account.
+    required: false
+    default: ""
+  role-arn:
+    description: ARN of the role to assume in the environment's account.
+    required: false
+    default: ""
+  role-duration-seconds:
+    description: Lifetime of the role session, at most the role's maximum.
+    required: false
+    default: "3600"
+
+runs:
+  using: composite
+  steps:
+    - uses: hashicorp/setup-terraform@dfe3c3f87815947d99a8997f908cb6525fc44e9e # v4.0.1
+      with:
+        terraform_version: ${{ inputs.terraform-version }}
+        # The wrapper reformats the output of every terraform command. The
+        # steps that follow read plain output.
+        terraform_wrapper: false
+
+    # The AWS provider is several hundred megabytes. The root module and
+    # bootstrap/ use the same build, so they share one download.
+    - name: Share one provider cache
+      shell: bash
+      run: |
+        mkdir -p "$RUNNER_TEMP/terraform-plugin-cache"
+        echo "TF_PLUGIN_CACHE_DIR=$RUNNER_TEMP/terraform-plugin-cache" >> "$GITHUB_ENV"
+
+    # The Region is read from the environment's backend file, so it is
+    # written once in the repository and never in the GitHub settings.
+    - name: Read the Region of the environment
+      id: region
+      if: inputs.environment != ''
+      shell: bash
+      env:
+        ENVIRONMENT: ${{ inputs.environment }}
+      run: |
+        region=$(sed -n 's/^region *= *"\(.*\)"$/\1/p' "environments/$ENVIRONMENT/backend.hcl")
+        test -n "$region"
+        echo "region=$region" >> "$GITHUB_OUTPUT"
+
+    # Exchanges the job's GitHub token for credentials of the role. The role's
+    # trust policy decides whether this job may have them.
+    - uses: aws-actions/configure-aws-credentials@e1253824e5c10ff9df46874f81ed3ec929e19cfd # v6.3.0
+      if: inputs.environment != ''
+      with:
+        role-to-assume: ${{ inputs.role-arn }}
+        aws-region: ${{ steps.region.outputs.region }}
+        role-duration-seconds: ${{ inputs.role-duration-seconds }}
+        role-session-name: github-${{ github.run_id }}-${{ github.run_attempt }}
+
+    - name: terraform init
+      if: inputs.environment != ''
+      shell: bash
+      env:
+        ENVIRONMENT: ${{ inputs.environment }}
+      run: terraform init -no-color -backend-config="environments/$ENVIRONMENT/backend.hcl"
