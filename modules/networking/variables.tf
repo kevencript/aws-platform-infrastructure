@@ -22,3 +22,13 @@ variable "availability_zones" {
     error_message = "Give between two and eight distinct zones. The subnet layout has room for eight."
   }
 }
+
+variable "nat_gateway_mode" {
+  description = "\"per_az\" puts a NAT gateway in every zone. \"single\" puts one in the first zone and shares it."
+  type        = string
+
+  validation {
+    condition     = contains(["per_az", "single"], var.nat_gateway_mode)
+    error_message = "The NAT gateway mode must be \"per_az\" or \"single\"."
+  }
+}

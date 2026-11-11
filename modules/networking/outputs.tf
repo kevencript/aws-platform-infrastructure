@@ -22,3 +22,8 @@ output "data_subnet_ids" {
   description = "IDs of the private data subnets, by zone. For RDS, ElastiCache and MSK."
   value       = { for zone, subnet in aws_subnet.data : zone => subnet.id }
 }
+
+output "nat_public_ips" {
+  description = "Addresses that outbound traffic from the app tier leaves with, for allow-lists outside AWS."
+  value       = [for address in aws_eip.nat : address.public_ip]
+}
