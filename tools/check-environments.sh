@@ -81,8 +81,8 @@ cp .terraform.lock.hcl "$CHECK_DIR/"
   done
 } >"$CHECK_DIR/main.tf"
 
-"$TERRAFORM" -chdir="$CHECK_DIR" init -backend=false -input=false -lockfile=readonly >/dev/null &&
-  "$TERRAFORM" -chdir="$CHECK_DIR" validate >/dev/null ||
+"$TERRAFORM" -chdir="$CHECK_DIR" init -no-color -backend=false -input=false -lockfile=readonly >/dev/null &&
+  "$TERRAFORM" -chdir="$CHECK_DIR" validate -no-color >/dev/null ||
   fail "a variable file does not match its stack. Modules above are named <stack>_<environment>; line numbers refer to $CHECK_DIR/main.tf"
 
 echo "environments: ok ($*) with $("$TERRAFORM" version | head -n 1)"

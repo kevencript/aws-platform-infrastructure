@@ -38,7 +38,7 @@ validate:
 	@for stack in $(STACKS); do \
 		echo "validate $$stack with $$($(TERRAFORM) version | head -n 1)"; \
 		$(TERRAFORM) -chdir=$$stack init -backend=false -input=false -lockfile=readonly > /dev/null || exit 1; \
-		$(TERRAFORM) -chdir=$$stack validate || exit 1; \
+		$(TERRAFORM) -chdir=$$stack validate -no-color || exit 1; \
 	done
 
 # Proves the version floor in versions.tf: validate and the environment check
