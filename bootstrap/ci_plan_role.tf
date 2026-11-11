@@ -1,9 +1,9 @@
 # The plan role. Any pull request raised from a branch of the repository can
 # assume it, and such a pull request can also change the workflow it runs.
 # The role is therefore treated as available to anyone who can push a branch:
-# it reads configuration and the root state, and it has no write permission
-# of any kind. A plan needs none when it runs with -lock=false, which is how
-# the pull request job runs it.
+# it reads configuration and the root state, and it cannot change the state,
+# the lock table or any resource Terraform manages. A plan needs no write when
+# it runs with -lock=false, which is how the pull request job runs it.
 
 locals {
   # Object key of the root module's state. It must equal the key in the
@@ -42,7 +42,7 @@ data "aws_iam_policy_document" "plan_trust" {
 
 resource "aws_iam_role" "plan" {
   name               = "${local.name_prefix}-ci-plan"
-  description        = "Assumed by pull request runs to plan. Read-only: it holds no write permission."
+  description        = "Assumed by pull request runs to plan. Read-only; it cannot write the state or the lock."
   assume_role_policy = data.aws_iam_policy_document.plan_trust.json
 }
 
@@ -82,8 +82,9 @@ data "aws_iam_policy_document" "plan" {
   # The backend keeps a checksum of the state next to the lock and reads it
   # to detect a stale read. The role cannot write to the table, so it cannot
   # take the lock: the pull request plan runs with -lock=false. That plan is
-  # never applied. If it overlaps an apply it can fail on the checksum or show
-  # a stale result, and it is run again.
+  # never applied. If it overlaps an apply it can fail on the checksum, or
+  # succeed against a state the apply has not finished writing, with no
+  # warning.
   statement {
     sid       = "ReadLockTable"
     effect    = "Allow"
