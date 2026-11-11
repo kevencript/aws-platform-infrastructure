@@ -44,8 +44,8 @@ variable "managed_policy_arns" {
   default     = {}
 }
 
-variable "inline_policy_json" {
-  description = "A policy document of the role's own, or null."
-  type        = string
-  default     = null
+variable "inline_policies" {
+  description = "Policy documents of the role's own, under keys chosen by the caller. Each key becomes a policy name."
+  type        = map(string)
+  default     = {}
 }

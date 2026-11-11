@@ -50,10 +50,13 @@ resource "aws_iam_role_policy_attachment" "managed" {
   policy_arn = each.value
 }
 
+# Same reason: a document is usually built from ARNs that only exist after
+# an apply. A count that depended on whether it is null could not be known
+# when Terraform plans; keys chosen by the caller always are.
 resource "aws_iam_role_policy" "inline" {
-  count = var.inline_policy_json == null ? 0 : 1
+  for_each = var.inline_policies
 
-  name   = "permissions"
+  name   = each.key
   role   = aws_iam_role.this.id
-  policy = var.inline_policy_json
+  policy = each.value
 }
