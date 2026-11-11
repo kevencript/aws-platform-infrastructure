@@ -7,6 +7,24 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- Data module (`modules/data`): PostgreSQL on RDS with an RDS-managed master password,
+  IAM database authentication, TLS required, Multi-AZ when asked, deletion protection
+  and a final snapshot; Redis on ElastiCache with TLS required, encryption at rest and
+  an ElastiCache user that authenticates with IAM; log groups and keys of their own;
+  the client policies of the API and the migration job.
+- IRSA roles for the API's service account and the migration job's, bound in the root
+  module to the policies the data module publishes.
+- Data store values for `dev` (single-AZ PostgreSQL, one Redis node) and `prod`
+  (Multi-AZ PostgreSQL, Redis with a replica).
+
+### Changed
+
+- `modules/irsa-role` takes inline policies as `inline_policies`, a map with keys chosen
+  by the caller, instead of `inline_policy_json`. A count that compared a document
+  with null could not be known at plan time when the document depends on new resources.
+
 ## [0.3.0] - 2026-11-11
 
 ### Added
