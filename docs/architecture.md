@@ -122,7 +122,10 @@ subnets and never renumbers existing ones.
   healthy zones. Dev accepts that risk to save cost.
 - An S3 gateway endpoint is attached to the app route tables. It is free and keeps
   image layer downloads off the NAT gateway.
-- VPC flow logs are delivered to an encrypted CloudWatch Logs group.
+- VPC flow logs are delivered to a CloudWatch Logs group encrypted with a key of its
+  own, whose policy lets CloudWatch Logs use it for that group only.
+- The VPC's default security group is emptied of its rules. Nothing uses it, and a
+  resource created without a group of its own then gets no access.
 
 ## Security groups
 
@@ -294,14 +297,14 @@ states:
 
 | Module | Purpose | Consumes |
 |--------|---------|----------|
-| `networking` | VPC, subnet tiers, internet and NAT gateways, routing, S3 endpoint, flow logs | Nothing |
+| `networking` | VPC, subnet tiers, internet and NAT gateways, routing, S3 endpoint, flow logs and their encryption key | Nothing |
 | `security` | All security groups and every cross-layer rule | `networking` |
 | `irsa-role` | Reusable role for one Kubernetes service account | An OIDC provider ARN and issuer URL |
-| `compute` | EKS cluster, managed node group, cluster and node roles, OIDC provider, add-ons | `networking`, `security`; calls `irsa-role` for the add-on roles |
+| `compute` | EKS cluster, managed node group, cluster and node roles, OIDC provider, the `vpc-cni`, `kube-proxy` and `coredns` add-ons, the keys for Kubernetes secrets and control plane logs | `networking`, `security`; calls `irsa-role` for the add-on roles |
 | `data` | RDS PostgreSQL, ElastiCache Redis, their encryption keys | `networking`, `security` |
 | `messaging` | MSK cluster and broker configuration | `networking`, `security` |
 | `edge` | ACM certificate and its DNS validation records, load balancer, listeners, target group, Route 53 alias, WAF | `networking`, `security`, the account's public hosted zone, created by the bootstrap stack |
-| `registry` | ECR repository and lifecycle policy | Nothing |
+| `registry` | ECR repository, its encryption key and lifecycle policy | Nothing |
 | `observability` | Alarm topic and CloudWatch alarms | Outputs of the modules above |
 
 The module that owns a resource publishes the smallest policy a client needs. The root
@@ -338,5 +341,5 @@ one pull request into `develop`. Releases group related batches.
 | `0.2.0` | Terraform foundation (per-account bootstrap stack, root skeleton, quality gate); CI pipeline with OIDC |
 | `0.3.0` | Networking and security groups; compute (EKS, IRSA, ECR) |
 | `0.4.0` | Data layer (RDS, Redis); messaging (MSK) |
-| `0.5.0` | Edge (load balancer, certificate, DNS records, WAF); observability |
+| `0.5.0` | Edge (load balancer, certificate, DNS records, WAF); observability (CloudWatch agent add-on, alarms) |
 | `1.0.0` | Documentation, decision records, final review |

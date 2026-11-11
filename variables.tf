@@ -51,3 +51,68 @@ variable "domain_name" {
     error_message = "The domain name must be lower case, with at least two labels and no trailing dot."
   }
 }
+
+# Network of the environment. modules/networking validates each value.
+
+variable "vpc_cidr" {
+  description = "IPv4 /16 block of the environment's VPC."
+  type        = string
+}
+
+variable "availability_zones" {
+  description = "Zones of the environment, in a fixed order. Append to add one; never reorder."
+  type        = list(string)
+}
+
+variable "nat_gateway_mode" {
+  description = "\"per_az\" for a NAT gateway in every zone, \"single\" for one shared gateway."
+  type        = string
+}
+
+variable "flow_log_retention_days" {
+  description = "Days CloudWatch Logs keeps the VPC flow logs."
+  type        = number
+}
+
+# The service the platform runs.
+
+variable "service_name" {
+  description = "Short name of the service, for example \"api\". Its image repository is <project>/<service_name>."
+  type        = string
+
+  validation {
+    condition     = can(regex("^[a-z][a-z0-9-]{1,30}$", var.service_name))
+    error_message = "The service name must be 2 to 31 characters: a lower-case letter, then lower-case letters, digits or hyphens."
+  }
+}
+
+# Cluster of the environment. modules/compute validates each value.
+
+variable "kubernetes_version" {
+  description = "Kubernetes version of the cluster, for example \"1.36\"."
+  type        = string
+}
+
+variable "node_instance_types" {
+  description = "EC2 instance types of the worker nodes."
+  type        = list(string)
+}
+
+variable "node_scaling" {
+  description = "Minimum, desired and maximum number of worker nodes."
+  type = object({
+    min_size     = number
+    desired_size = number
+    max_size     = number
+  })
+}
+
+variable "cluster_admin_principal_arns" {
+  description = "IAM roles or users with cluster admin access to the Kubernetes API. At least one."
+  type        = list(string)
+}
+
+variable "cluster_log_retention_days" {
+  description = "Days CloudWatch Logs keeps the control plane logs."
+  type        = number
+}

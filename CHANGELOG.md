@@ -7,6 +7,31 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.3.0] - 2026-11-11
+
+### Added
+
+- Networking module (`modules/networking`): VPC, public, private app and private data
+  subnets in every zone, internet gateway, NAT gateways per zone or shared, route tables
+  per tier with no default route in the data tier, S3 gateway endpoint, and VPC flow
+  logs in a CloudWatch Logs group encrypted with its own key.
+- Security module (`modules/security`): security groups for the load balancer, the
+  nodes and the three data stores, with each internal flow written as a rule pair that
+  names groups, not address ranges.
+- Network values for `dev` (two zones, one NAT gateway) and `prod` (three zones, a NAT
+  gateway in each).
+- Compute module (`modules/compute`): EKS cluster with a private API endpoint, access
+  entries, Kubernetes secrets and control plane logs encrypted with keys of the account,
+  and standard support only; a managed node group on Amazon Linux 2023 with IMDSv2 and a
+  hop limit of 1; the `vpc-cni`, `kube-proxy` and `coredns` add-ons; the OIDC provider
+  for IRSA.
+- IRSA role module (`modules/irsa-role`): an IAM role trusted by exactly one Kubernetes
+  service account.
+- Registry module (`modules/registry`): ECR repository with immutable tags, scan on
+  push, a key of the account and a lifecycle policy.
+- Cluster and repository values for `dev` (two t3.large nodes) and `prod` (at least
+  three m6i.large nodes).
+
 ## [0.2.0] - 2026-11-11
 
 ### Added
