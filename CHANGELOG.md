@@ -20,9 +20,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Environment files for `dev` and `prod` with placeholder values
   (`environments/<env>/`): root variables, bootstrap variables and backend settings.
 - Provider lock files for Linux and macOS, on amd64 and arm64.
-- Local quality gate (`make check`): format check, validation on Terraform 1.5 and on
-  the current release, a check of the environment files against the code, and a trivy
-  scan.
+- Local quality gate (`make check`): format check, validation on Terraform 1.5.7 and
+  1.15.1, a check of the environment files against the code, and a trivy scan.
 
 ### Changed
 
