@@ -301,7 +301,7 @@ states:
 | `security` | All security groups and every cross-layer rule | `networking` |
 | `irsa-role` | Reusable role for one Kubernetes service account | An OIDC provider ARN and issuer URL |
 | `compute` | EKS cluster, managed node group, cluster and node roles, OIDC provider, the `vpc-cni`, `kube-proxy` and `coredns` add-ons, the keys for Kubernetes secrets and control plane logs | `networking`, `security`; calls `irsa-role` for the add-on roles |
-| `data` | RDS PostgreSQL, ElastiCache Redis, their encryption keys | `networking`, `security` |
+| `data` | RDS PostgreSQL, ElastiCache Redis, their encryption keys and log groups, and the client policies of the API and the migration job | `networking`, `security` |
 | `messaging` | MSK cluster and broker configuration | `networking`, `security` |
 | `edge` | ACM certificate and its DNS validation records, load balancer, listeners, target group, Route 53 alias, WAF | `networking`, `security`, the account's public hosted zone, created by the bootstrap stack |
 | `registry` | ECR repository, its encryption key and lifecycle policy | Nothing |
