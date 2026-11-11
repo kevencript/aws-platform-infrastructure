@@ -1,0 +1,212 @@
+name: terraform
+
+# A pull request into develop or main gets the checks and a plan for each
+# account. A push to develop applies dev; a push to main applies prod.
+#
+# There is no manual or scheduled trigger on purpose. IAM sees the token's
+# subject and branch, not the event, so any run on a deploy branch whose job
+# names the environment would receive the apply role.
+on:
+  pull_request:
+    branches: [develop, main]
+  push:
+    branches: [develop, main]
+
+# Every job starts with read access to the repository and nothing more. The
+# jobs that sign in to AWS add id-token: write, which lets them request an
+# OIDC token from GitHub.
+permissions:
+  contents: read
+
+env:
+  TF_IN_AUTOMATION: "1"
+  TF_INPUT: "0"
+  # The release that plans and applies. The checks also run the oldest
+  # release the code supports.
+  TERRAFORM_VERSION: "1.15.1"
+
+jobs:
+  # ---------------------------------------------------------------- no AWS
+  checks:
+    name: checks (Terraform ${{ matrix.terraform }})
+    runs-on: ubuntu-24.04
+    strategy:
+      fail-fast: false
+      matrix:
+        terraform: ["1.5.7", "1.15.1"]
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: ./.github/actions/terraform-setup
+        with:
+          terraform-version: ${{ matrix.terraform }}
+      - name: make fmt validate environments
+        run: make fmt validate environments
+
+  scan:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: aquasecurity/setup-trivy@81e514348e19b6112ce2a7e3ecbafe19c1e1f567 # v0.3.1
+        with:
+          version: v0.74.0
+      - name: make scan
+        run: make scan
+
+  # ------------------------------------------------- plan, on pull requests
+  # A plan job never names a GitHub environment: with one, its token's
+  # subject would name the environment and stop matching the plan role.
+  #
+  # Each plan job is skipped, not failed:
+  #   - for a pull request from a fork, which gets no OIDC token;
+  #   - while the role's repository variable is empty, that is, until the
+  #     bootstrap stack has been applied in the account.
+  #
+  # The plan role cannot take the state lock, so the plan runs without it.
+  # It is never applied. One that overlaps an apply can fail on the state
+  # checksum, or succeed against a state the apply has not finished writing.
+  plan-dev:
+    name: plan (dev)
+    if: >-
+      github.event_name == 'pull_request'
+      && github.event.pull_request.head.repo.full_name == github.repository
+      && vars.AWS_PLAN_ROLE_ARN_DEV != ''
+    needs: [checks, scan]
+    runs-on: ubuntu-24.04
+    permissions:
+      contents: read
+      id-token: write
+    # A new push to the pull request replaces a plan that is still running.
+    concurrency:
+      group: plan-dev-${{ github.ref }}
+      cancel-in-progress: true
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: ./.github/actions/terraform-setup
+        with:
+          terraform-version: ${{ env.TERRAFORM_VERSION }}
+          environment: dev
+          role-arn: ${{ vars.AWS_PLAN_ROLE_ARN_DEV }}
+      - name: terraform plan
+        run: terraform plan -no-color -lock=false -var-file=environments/dev/terraform.tfvars -out=tfplan
+      # The summary needs no extra permission, unlike a comment on the pull
+      # request, which would need write access for a job that runs code
+      # nobody has reviewed yet.
+      - name: Show the plan in the job summary
+        run: |
+          {
+            echo '```'
+            terraform show -no-color tfplan
+            echo '```'
+          } >> "$GITHUB_STEP_SUMMARY"
+
+  plan-prod:
+    name: plan (prod)
+    if: >-
+      github.event_name == 'pull_request'
+      && github.event.pull_request.head.repo.full_name == github.repository
+      && vars.AWS_PLAN_ROLE_ARN_PROD != ''
+    needs: [checks, scan]
+    runs-on: ubuntu-24.04
+    permissions:
+      contents: read
+      id-token: write
+    concurrency:
+      group: plan-prod-${{ github.ref }}
+      cancel-in-progress: true
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: ./.github/actions/terraform-setup
+        with:
+          terraform-version: ${{ env.TERRAFORM_VERSION }}
+          environment: prod
+          role-arn: ${{ vars.AWS_PLAN_ROLE_ARN_PROD }}
+      - name: terraform plan
+        run: terraform plan -no-color -lock=false -var-file=environments/prod/terraform.tfvars -out=tfplan
+      - name: Show the plan in the job summary
+        run: |
+          {
+            echo '```'
+            terraform show -no-color tfplan
+            echo '```'
+          } >> "$GITHUB_STEP_SUMMARY"
+
+  # ------------------------------------------------ apply, on deploy branches
+  # The job names the account's GitHub environment, so the environment's
+  # rules run before the job starts, and the token's subject is the one the
+  # apply role trusts. The role also requires the deploy branch.
+  #
+  # The job plans and applies in one go, with the state lock. For prod, the
+  # environment's reviewer approves before that plan exists; what the
+  # reviewer has read is the plan on the pull request.
+  #
+  # One apply at a time per account, never cancelled once running. A newer
+  # push replaces one that is still waiting, so the latest commit wins.
+  apply-dev:
+    name: apply (dev)
+    if: >-
+      github.event_name == 'push'
+      && github.ref == 'refs/heads/develop'
+      && vars.AWS_APPLY_ROLE_ARN_DEV != ''
+    needs: [checks, scan]
+    runs-on: ubuntu-24.04
+    environment: dev
+    permissions:
+      contents: read
+      id-token: write
+    concurrency:
+      group: apply-dev
+      cancel-in-progress: false
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: ./.github/actions/terraform-setup
+        with:
+          terraform-version: ${{ env.TERRAFORM_VERSION }}
+          environment: dev
+          role-arn: ${{ vars.AWS_APPLY_ROLE_ARN_DEV }}
+          # The role allows two hours: a first apply that creates the
+          # cluster, the database and the brokers can outlast one.
+          role-duration-seconds: "7200"
+      - name: terraform plan
+        run: terraform plan -no-color -var-file=environments/dev/terraform.tfvars -out=tfplan
+      - name: terraform apply
+        run: terraform apply -no-color tfplan
+
+  apply-prod:
+    name: apply (prod)
+    if: >-
+      github.event_name == 'push'
+      && github.ref == 'refs/heads/main'
+      && vars.AWS_APPLY_ROLE_ARN_PROD != ''
+    needs: [checks, scan]
+    runs-on: ubuntu-24.04
+    environment: prod
+    permissions:
+      contents: read
+      id-token: write
+    concurrency:
+      group: apply-prod
+      cancel-in-progress: false
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: ./.github/actions/terraform-setup
+        with:
+          terraform-version: ${{ env.TERRAFORM_VERSION }}
+          environment: prod
+          role-arn: ${{ vars.AWS_APPLY_ROLE_ARN_PROD }}
+          role-duration-seconds: "7200"
+      - name: terraform plan
+        run: terraform plan -no-color -var-file=environments/prod/terraform.tfvars -out=tfplan
+      - name: terraform apply
+        run: terraform apply -no-color tfplan
