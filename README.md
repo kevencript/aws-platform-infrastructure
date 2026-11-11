@@ -33,7 +33,7 @@ The project is delivered in batches, one per knowledge area. See the
 | Release | Scope | Status |
 |---------|-------|--------|
 | `0.1.0` | Architecture diagram, written plan, contribution conventions | Released |
-| `0.2.0` | Terraform foundation and CI pipeline | In progress: foundation done, pipeline next |
+| `0.2.0` | Terraform foundation and CI pipeline | In progress |
 | `0.3.0` | Networking, security groups and compute | Planned |
 | `0.4.0` | Data layer and messaging | Planned |
 | `0.5.0` | Edge and observability | Planned |
@@ -60,7 +60,10 @@ The project is delivered in batches, one per knowledge area. See the
 ├── docs/
 │   ├── architecture.md      # the written plan
 │   └── diagrams/            # the diagram as an Excalidraw scene, generated
-├── .github/                 # pull request template
+├── .github/
+│   ├── workflows/terraform.yml   # pipeline: checks, plan on pull requests, apply on merge
+│   ├── actions/terraform-setup/  # shared steps: Terraform, OIDC sign-in, init
+│   └── pull_request_template.md
 ├── CONTRIBUTING.md          # Git Flow, commit and release conventions
 └── CHANGELOG.md
 ```
@@ -138,6 +141,34 @@ terraform apply tfplan
   `init`, `plan` and `apply`. The quality gate never shows it, because it does not
   initialise the backend. The warning is expected:
   [the plan explains why](docs/architecture.md#state-and-environments).
+
+### Pipeline
+
+[`.github/workflows/terraform.yml`](.github/workflows/terraform.yml) runs the checks of
+`make check`, then plans or applies with the CI roles that the bootstrap stack creates.
+
+| Event | Jobs | Role |
+|-------|------|------|
+| Pull request into `develop` or `main` | `checks` on Terraform 1.5.7 and 1.15.1 and `scan`, then `plan (dev)` and `plan (prod)` | The plan role of each account |
+| Push to `develop` | `checks` and `scan`, then `apply (dev)` | The apply role of the dev account |
+| Push to `main` | `checks` and `scan`, then `apply (prod)` | The apply role of the prod account |
+
+- The workflow names no account. A job reads its role ARN from a repository variable
+  (step 7 of [`bootstrap/README.md`](bootstrap/README.md)) and the Region from the
+  environment's `backend.hcl`. A job whose variable is empty is skipped. Nothing in this
+  repository is applied, so only `checks` and `scan` run here.
+- The plan jobs name no GitHub environment, run with `-lock=false` and write the plan to
+  the job summary. A pull request from a fork gets no OIDC token, so its plan jobs are
+  skipped.
+- The apply jobs name the account's GitHub environment. For `prod`, the environment's
+  required reviewers approve before the job starts. The job then plans and applies in
+  one go: what the reviewer has read is the plan on the pull request, not the plan that
+  is applied.
+- Applies to one account run one at a time and are never cancelled once running. A
+  newer push replaces one that is still waiting.
+- There is no manual or scheduled trigger. IAM sees the token's subject and branch, not
+  the event, so such a run on a deploy branch would also receive the apply role.
+- Every action is pinned to a commit SHA, with its version in a comment.
 
 ## Contributing
 
