@@ -53,3 +53,54 @@ variable "cluster_admin_principal_arns" {
     error_message = "Give at least one IAM role or user ARN. Without one, nobody can use the cluster."
   }
 }
+
+variable "node_security_group_id" {
+  description = "The node security group, which the data stores accept connections from."
+  type        = string
+}
+
+variable "node_instance_types" {
+  description = "EC2 instance types of the nodes. More than one helps capacity, mainly with SPOT."
+  type        = list(string)
+
+  validation {
+    condition     = length(var.node_instance_types) >= 1
+    error_message = "Give at least one instance type."
+  }
+}
+
+variable "node_capacity_type" {
+  description = "ON_DEMAND, or SPOT for cheaper nodes that AWS may take back."
+  type        = string
+  default     = "ON_DEMAND"
+
+  validation {
+    condition     = contains(["ON_DEMAND", "SPOT"], var.node_capacity_type)
+    error_message = "The capacity type must be ON_DEMAND or SPOT."
+  }
+}
+
+variable "node_scaling" {
+  description = "Number of nodes: the group never goes below min_size or above max_size."
+  type = object({
+    min_size     = number
+    desired_size = number
+    max_size     = number
+  })
+
+  validation {
+    condition     = var.node_scaling.min_size >= 1 && var.node_scaling.min_size <= var.node_scaling.desired_size && var.node_scaling.desired_size <= var.node_scaling.max_size
+    error_message = "The sizes must satisfy 1 <= min_size <= desired_size <= max_size."
+  }
+}
+
+variable "node_disk_size_gib" {
+  description = "Size of each node's root volume, in GiB. It holds the container images."
+  type        = number
+  default     = 50
+
+  validation {
+    condition     = var.node_disk_size_gib >= 20
+    error_message = "The root volume must be at least 20 GiB."
+  }
+}

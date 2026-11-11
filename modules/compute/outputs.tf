@@ -27,3 +27,8 @@ output "oidc_issuer_url" {
   description = "Issuer URL of the cluster, for IRSA roles."
   value       = aws_eks_cluster.this.identity[0].oidc[0].issuer
 }
+
+output "node_role_arn" {
+  description = "ARN of the worker nodes' IAM role."
+  value       = aws_iam_role.node.arn
+}
