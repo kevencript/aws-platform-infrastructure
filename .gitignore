@@ -9,12 +9,12 @@
 crash.log
 crash.*.log
 
-# Exclude all .tfvars files, which are likely to contain sensitive data, such as
-# password, private keys, and other secrets. These should not be part of version
-# control as they are data points which are potentially sensitive and subject
-# to change depending on the environment.
+# Variable files are ignored by default, because ad-hoc ones tend to collect
+# secrets. The per-environment files are the exception: they are committed,
+# hold no secret and are reviewed like any other change.
 *.tfvars
 *.tfvars.json
+!environments/*/terraform.tfvars
 
 # Ignore override files as they are usually used to override resources locally and so
 # are not checked in
@@ -42,3 +42,14 @@ terraform.rc
 # Optional: ignore plan files saved before destroying Terraform configuration
 # Uncomment the line below if you want to ignore planout files.
 # planout
+
+# Operating system and editor files
+.DS_Store
+.idea/
+.vscode/
+*.swp
+
+# Logs and local environment files
+*.log
+.env
+.env.*
