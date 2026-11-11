@@ -349,7 +349,7 @@ const OIDC_BOX_Y = BOOTSTRAP.y + GROUP_TITLE;
 const STATE_BOX_Y = OIDC_BOX_Y + THREE_LINE_BOX_H + STATE_LINK;
 const githubOidc = node({
   id: "github-oidc", x: BOOTSTRAP_BOX_X, y: OIDC_BOX_Y, w: BOOTSTRAP_INNER_W, h: THREE_LINE_BOX_H,
-  title: "GitHub OIDC provider", lines: ["plan role: read-only, no writes", "apply role: GitHub environment prod"], category: "security",
+  title: "GitHub OIDC provider", lines: ["plan role: read-only, no state lock", "apply role: GitHub environment prod"], category: "security",
 });
 const stateBucket = node({
   id: "state-bucket", x: BOOTSTRAP_BOX_X, y: STATE_BOX_Y, w: STATE_BOX.w, h: STATE_BOX.h,
