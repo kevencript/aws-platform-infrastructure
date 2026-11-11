@@ -20,3 +20,8 @@ output "name_servers" {
   description = "Name servers of the public hosted zone. The parent domain needs an NS record for the zone name with these values."
   value       = aws_route53_zone.public.name_servers
 }
+
+output "plan_role_arn" {
+  description = "ARN of the plan role. It becomes a GitHub Actions repository variable."
+  value       = aws_iam_role.plan.arn
+}
