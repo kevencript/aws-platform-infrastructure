@@ -19,13 +19,14 @@ variable "security_group_id" {
 }
 
 variable "kafka" {
-  description = "Kafka version, broker size and count, storage, and how long data is kept."
+  description = "Kafka version, broker size and count, storage, and how long data and logs are kept."
   type = object({
-    version          = string # for example "3.9.x.kraft": a cluster without ZooKeeper
-    instance_type    = string
-    brokers_per_zone = number
-    volume_size_gib  = number
-    retention_hours  = number # how long a topic keeps a message, unless the topic says otherwise
+    version                   = string # for example "3.9.x.kraft": a cluster without ZooKeeper
+    instance_type             = string
+    brokers_per_zone          = number
+    volume_size_gib           = number
+    retention_hours           = number # how long a topic keeps a message, unless the topic says otherwise
+    broker_log_retention_days = number
   })
 
   validation {
@@ -41,6 +42,11 @@ variable "kafka" {
   validation {
     condition     = var.kafka.retention_hours >= 1
     error_message = "Messages must be kept for at least one hour."
+  }
+
+  validation {
+    condition     = contains([1, 3, 5, 7, 14, 30, 60, 90, 120, 150, 180, 365, 400, 545, 731, 1096, 1827, 2192, 2557, 2922, 3288, 3653], var.kafka.broker_log_retention_days)
+    error_message = "The broker log retention must be one of the values CloudWatch Logs accepts, for example 30 or 90."
   }
 }
 

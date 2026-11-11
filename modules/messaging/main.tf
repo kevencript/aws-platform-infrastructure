@@ -99,4 +99,13 @@ resource "aws_msk_cluster" "kafka" {
     arn      = aws_msk_configuration.kafka.arn
     revision = aws_msk_configuration.kafka.latest_revision
   }
+
+  logging_info {
+    broker_logs {
+      cloudwatch_logs {
+        enabled   = true
+        log_group = aws_cloudwatch_log_group.brokers.name
+      }
+    }
+  }
 }
