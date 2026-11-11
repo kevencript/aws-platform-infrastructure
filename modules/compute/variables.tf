@@ -43,3 +43,13 @@ variable "cluster_log_retention_days" {
     error_message = "The retention must be one of the values CloudWatch Logs accepts, for example 30 or 90."
   }
 }
+
+variable "cluster_admin_principal_arns" {
+  description = "IAM roles or users that get cluster admin access to the Kubernetes API. At least one: the identity that creates the cluster gets none."
+  type        = list(string)
+
+  validation {
+    condition     = length(var.cluster_admin_principal_arns) >= 1 && alltrue([for arn in var.cluster_admin_principal_arns : can(regex("^arn:aws[a-z-]*:iam::[0-9]{12}:(role|user)/.+$", arn))])
+    error_message = "Give at least one IAM role or user ARN. Without one, nobody can use the cluster."
+  }
+}
