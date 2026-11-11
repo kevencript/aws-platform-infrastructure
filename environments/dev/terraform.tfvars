@@ -9,3 +9,10 @@ environment    = "dev"
 aws_region     = "us-east-2"
 aws_account_id = "111111111111"
 domain_name    = "dev.example.com"
+
+# Network. Two zones and one shared NAT gateway: dev accepts losing outbound
+# access during an outage of the first zone, to save a second gateway.
+vpc_cidr                = "10.20.0.0/16"
+availability_zones      = ["us-east-2a", "us-east-2b"]
+nat_gateway_mode        = "single"
+flow_log_retention_days = 30
