@@ -60,10 +60,10 @@ creates only the records in it.
 - The migration job reaches PostgreSQL over the same rule pair as flow 3. The diagram
   draws only the API's connection.
 - A pull request from a branch of this repository can assume the plan role of each
-  account, and it can also change the workflow it runs. That is why a plan role has no
-  write permission at all, and why it is denied secret values. A plan job must not name
-  a GitHub environment: with one, its token carries the environment subject instead of
-  `pull_request`.
+  account, and it can also change the workflow it runs. That is why a plan role cannot
+  write the state, the lock or any resource, and why it is denied secret values. A plan
+  job must not name a GitHub environment: with one, its token carries the environment
+  subject instead of `pull_request`.
 - Pull requests from forks get no OIDC token: the plan workflow runs on the
   `pull_request` event, where a run from a fork has a read-only `GITHUB_TOKEN` and
   cannot request one. The one exception is a private repository that enables "Send
@@ -168,7 +168,7 @@ No secret is written in code, and none enters a plan or the state.
 | API → Redis | IAM-authenticated ElastiCache user: short-lived tokens over TLS |
 | API → Kafka | SASL/IAM, limited to a topic prefix |
 | Pods → AWS APIs | IRSA: one role per Kubernetes service account, with exact `aud` and `sub` conditions |
-| CI → AWS | GitHub OIDC, set up in each account: a plan role (read-only, with no write permission and no access to secret values) and one apply role for that account's environment (administrator of its account, minus the Deny statements listed under [CI roles](#ci-roles)) |
+| CI → AWS | GitHub OIDC, set up in each account: a plan role (read-only: no write to the state, the lock table or any resource Terraform manages, and no access to secret values) and one apply role for that account's environment (administrator of its account, minus the Deny statements listed under [CI roles](#ci-roles)) |
 
 Any pod on the node group can open a TCP connection to a data store. Only a pod whose
 IAM role was granted access can authenticate to one.
@@ -186,14 +186,15 @@ is given both as arguments.
 ### CI roles
 
 The plan role is the one exposed to code that nobody has reviewed. It holds the AWS
-managed `ReadOnlyAccess` policy and read access to the root state, and no write
-permission of any kind. It cannot even take the state lock, so the pull request job
-runs `terraform plan -lock=false`. That plan is never applied, and one that overlaps an
-apply is run again. Explicit Deny statements remove what `ReadOnlyAccess` must
-not be used for here: secret values, decryption with any key other than the state key,
-and every S3 object other than the root state. What stays readable is configuration,
-and data those statements do not reach: logs, container images and parameters stored
-as plain text, for example.
+managed `ReadOnlyAccess` policy and read access to the root state. It cannot write the
+state, the lock table or any resource Terraform manages. Because it cannot take the
+state lock, the pull request job runs `terraform plan -lock=false`. That plan is never
+applied. One that overlaps an apply can fail on the state checksum, or succeed silently
+against a state the apply has not finished writing. Explicit Deny statements remove what
+`ReadOnlyAccess` must not be used for here: secret values, decryption with any key other
+than the state key, and every S3 object other than the root state. What stays readable
+is configuration, and data those statements do not reach: logs, container images and
+parameters stored as plain text, for example.
 
 The apply role holds the AWS managed `AdministratorAccess` policy. It has to create IAM
 roles for the cluster and its workloads, and a principal that can create roles and
@@ -322,7 +323,7 @@ assumption, in the batch named.
 | Node pressure alarms use Container Insights metrics, which may not be published under an IMDS hop limit of 1 | An alarm on the node group's Auto Scaling group CPU | Observability |
 | The controller's write actions are scoped to one target group. The policy has not been exercised by a running controller | Use the controller's published policy without the scoping | Edge |
 | The token subject of `pull_request` and `environment` runs, in the form that carries the owner and repository IDs, is inferred from the documented example for a branch | Read the claims of a real token in the first pipeline run and correct the GitHub values of the bootstrap stack | CI pipeline |
-| The pull request plan runs with `-lock=false` under a role that has no write permission. That such a plan needs no write at all rests on the backend's documentation and has not been exercised by a real run | Allow the plan role to write the lock item only, through a condition on the lock table's partition key | CI pipeline |
+| The pull request plan runs with `-lock=false` under a role that has no write permission. That `init` and such a plan write nothing rests on the S3 backend source of Terraform 1.5.7 and 1.15.1 and has not been exercised by a real run | Allow the plan role to write the lock item only, through a condition on the lock table's partition key. A pull request can then hold the lock, or release one an apply holds | CI pipeline |
 | Moving the bootstrap state from the local file into the bucket follows the documented procedure and has not been run | Keep the local state file until a plan against the bucket reports no changes | Foundation |
 | Required reviewers on the `prod` environment and protection of `develop` and `main` are assumed to be available. On a free GitHub plan both exist for public repositories only | The `ref` condition in IAM holds without either. Without required reviewers or a required approving review, anyone with write access can run an apply role, by a direct push or by merging their own pull request, so write access is then limited to the people trusted with both accounts | CI pipeline |
 
