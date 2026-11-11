@@ -14,7 +14,7 @@ account and once in the prod account. The two accounts share no resource.
 | `state.tf` | KMS key and alias, S3 bucket and its policy, DynamoDB table | Encrypted, versioned and locked storage for both Terraform states of the account, reachable only over TLS |
 | `dns.tf` | Public Route 53 hosted zone | The parent domain delegates to it once, and a recreated zone would get new name servers |
 | `github_oidc.tf` | IAM OIDC provider for GitHub Actions | Workflow jobs exchange a GitHub token for short-lived credentials; no access key exists |
-| `ci_plan_role.tf` | Plan role | Assumed by pull request runs: read-only, with no write permission |
+| `ci_plan_role.tf` | Plan role | Assumed by pull request runs: read-only, without access to the state's write path |
 | `ci_apply_role.tf` | Apply role | Assumed by deploy runs of the account's GitHub environment, from its deploy branch only |
 
 The inputs are in [`../environments/<env>/bootstrap.tfvars`](../environments). The
@@ -27,7 +27,7 @@ account ID, so update it too. Step 3 below checks the file against what was crea
 | | Plan role | Apply role |
 |---|-----------|------------|
 | Who can assume it | A job of this repository on a `pull_request` event that names no GitHub environment | A job of this repository that names the account's GitHub environment and runs from the deploy branch |
-| Permissions | The AWS managed `ReadOnlyAccess` policy and read access to the root state. No write of any kind | The AWS managed `AdministratorAccess` policy |
+| Permissions | The AWS managed `ReadOnlyAccess` policy and read access to the root state. No write to the state, the lock table or any resource Terraform manages | The AWS managed `AdministratorAccess` policy |
 | Denied | Secret values, decryption with any key but the state key, and every S3 object but the root state | Any change to the two CI roles and the OIDC provider, any administration of the state bucket, lock table and state key, any access to this stack's own state, and deletion of the hosted zone |
 
 The apply role is an administrator of its account on purpose: it creates IAM roles, and
@@ -37,10 +37,10 @@ one arrives as a change to the root module. They do not stop someone who already
 controls an apply run, who can create a second role without them. The reasoning is in
 [`docs/architecture.md`](../docs/architecture.md#ci-roles).
 
-The plan role has no write permission, so it cannot take the state lock. The pull
-request job therefore runs `terraform plan -lock=false`. That plan is never applied. If
-it overlaps an apply it can fail on the state checksum or show a stale result, and it is
-run again.
+The plan role cannot write to the lock table, so it cannot take the state lock. The
+pull request job therefore runs `terraform plan -lock=false`. That plan is never
+applied. If it overlaps an apply, it can fail on the state checksum and be run again, or
+succeed against a state the apply has not finished writing, with no warning.
 
 ## Before the first apply
 
