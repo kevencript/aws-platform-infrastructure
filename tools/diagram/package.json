@@ -1,0 +1,25 @@
+{
+  "name": "architecture-diagram",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "description": "Regenerates the architecture diagram (Excalidraw scene and PNG) from a scene module",
+  "scripts": {
+    "bundle": "node scripts/bundle.mjs",
+    "render": "node scripts/render.mjs",
+    "verify": "node scripts/verify.mjs",
+    "publish": "node scripts/publish.mjs",
+    "build": "npm run bundle && npm run render && npm run verify && npm run publish",
+    "check": "node scripts/check.mjs"
+  },
+  "dependencies": {
+    "@excalidraw/excalidraw": "0.18.1",
+    "esbuild": "0.28.2",
+    "playwright-core": "1.65.0",
+    "react": "18.3.1",
+    "react-dom": "18.3.1"
+  },
+  "engines": {
+    "node": ">=20"
+  }
+}
