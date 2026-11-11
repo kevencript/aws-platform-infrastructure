@@ -80,7 +80,7 @@ It needs no AWS account and no credentials.
 
 | Tool | Version |
 |------|---------|
-| Terraform | 1.5 or newer, except 1.6.0 and 1.15.0. Checked with 1.5.7 and 1.15.1. The lock files pin the AWS provider to 5.100.0 |
+| Terraform | 1.5 or newer, except 1.6.0 and 1.15.0. Checked with 1.5.7 and 1.15.1; newer releases were not run. The lock files pin the AWS provider to 5.100.0 |
 | trivy | Checked with 0.74.0 |
 | make | Checked with GNU Make 3.81, the one shipped with macOS |
 
