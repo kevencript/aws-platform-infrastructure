@@ -52,7 +52,7 @@ creates only the records in it.
 | 9 | Nodes → ECR | Image pull | AWS API | Node role; image layers travel through the S3 gateway endpoint |
 | 10 | Cluster add-ons → CloudWatch → SNS | Metrics and logs in, alarm notifications out | AWS API | IRSA role for the agent; topic policy |
 | 11 | Load balancer controller → load balancer target group | Elastic Load Balancing API: registers pod IPs | AWS API | IRSA role; write actions limited to one target group |
-| 12 | GitHub Actions → GitHub OIDC provider → CI role | OIDC token for a short-lived role | AWS API | Role trust on the token's `sub`. Each account has a plan role that matches `pull_request` and one apply role that matches `environment:<name>` for its own environment |
+| 12 | GitHub Actions → GitHub OIDC provider → CI role | OIDC token for a short-lived role | AWS API | Role trust on the token's claims. Each account has a plan role that matches the `pull_request` subject, and one apply role that matches the `environment:<name>` subject of its own environment and the `ref` of its deploy branch |
 | 13 | EKS control plane ↔ nodes | 443, kubelet 10250, admission webhooks | Control plane | Cluster security group managed by EKS, which allows all traffic between its members |
 
 - Flows 7 to 11 leave the VPC over the path of flow 6. Image layers in flow 9 are the
@@ -60,11 +60,27 @@ creates only the records in it.
 - The migration job reaches PostgreSQL over the same rule pair as flow 3. The diagram
   draws only the API's connection.
 - A pull request from a branch of this repository can assume the plan role of each
-  account, and it can also change the workflow it runs. That is why a plan role can only
-  read and take the state lock. Pull requests from forks get no OIDC token: the plan
-  workflow runs on the `pull_request` event, where a run from a fork has a read-only
-  `GITHUB_TOKEN` and cannot request one. Which branch may deploy to an environment is
-  enforced by the GitHub environment's protection rules, not by IAM.
+  account, and it can also change the workflow it runs. That is why a plan role cannot
+  write the state, the lock or any resource, and why it is denied secret values. A plan
+  job must not name a GitHub environment: with one, its token carries the environment
+  subject instead of `pull_request`.
+- Pull requests from forks get no OIDC token: the plan workflow runs on the
+  `pull_request` event, where a run from a fork has a read-only `GITHUB_TOKEN` and
+  cannot request one. The one exception is a private repository that enables "Send
+  write tokens to workflows from pull requests". That setting stays off.
+- Which branch may deploy to an environment is enforced twice. The apply role's trust
+  policy requires the token's `ref` to be the deploy branch: `develop` for dev, `main`
+  for prod. The GitHub environment's protection rules repeat the branch and, for prod,
+  add required reviewers. The IAM condition does not depend on how the environment is
+  configured: any job can name an environment, and GitHub creates an environment that
+  does not exist yet without any rule. It does depend on who can push to the deploy
+  branch, so `develop` and `main` are protected and take changes through pull requests
+  only.
+- The trust policies match GitHub's immutable subject format, which carries the numeric
+  IDs of the owner and of the repository next to their names:
+  `repo:OWNER@OWNER-ID/REPO@REPO-ID:...`. It is the default for repositories created
+  after 15 July 2026, and an older repository opts in. Matching that form exactly means
+  a role cannot be assumed from a repository that later takes over the same name.
 
 ## Network plan
 
@@ -148,11 +164,11 @@ No secret is written in code, and none enters a plan or the state.
 |--------|-----------|
 | PostgreSQL master user | Password generated, stored and rotated by RDS in Secrets Manager. Terraform only ever holds the secret's ARN |
 | API → PostgreSQL | IAM database authentication as a non-privileged user |
-| Master secret | Read access is granted to one role only, the migration job's |
+| Master secret | Among the workloads, read access is granted to one role only, the migration job's. The plan role is denied it. The apply role administers its account and can read it: see [CI roles](#ci-roles) |
 | API → Redis | IAM-authenticated ElastiCache user: short-lived tokens over TLS |
 | API → Kafka | SASL/IAM, limited to a topic prefix |
 | Pods → AWS APIs | IRSA: one role per Kubernetes service account, with exact `aud` and `sub` conditions |
-| CI → AWS | GitHub OIDC, set up in each account: a plan role (read-only, plus the state lock) and one apply role for that account's environment |
+| CI → AWS | GitHub OIDC, set up in each account: a plan role (read-only: no write to the state, the lock table or any resource Terraform manages, and no access to secret values) and one apply role for that account's environment (administrator of its account, minus the Deny statements listed under [CI roles](#ci-roles)) |
 
 Any pod on the node group can open a TCP connection to a data store. Only a pod whose
 IAM role was granted access can authenticate to one.
@@ -166,6 +182,41 @@ Nodes enforce IMDSv2 with a hop limit of 1, so only a pod on the host network ca
 reach its node's credentials. Every other pod depends on IRSA. One consequence: the
 load balancer controller cannot read its region and VPC from instance metadata, so it
 is given both as arguments.
+
+### CI roles
+
+The plan role is the one exposed to code that nobody has reviewed. It holds the AWS
+managed `ReadOnlyAccess` policy and read access to the root state. It cannot write the
+state, the lock table or any resource Terraform manages. Because it cannot take the
+state lock, the pull request job runs `terraform plan -lock=false`. That plan is never
+applied. One that overlaps an apply can fail on the state checksum, or succeed silently
+against a state the apply has not finished writing. Explicit Deny statements remove what
+`ReadOnlyAccess` must not be used for here: secret values, decryption with any key other
+than the state key, and every S3 object other than the root state. What stays readable
+is configuration, and data those statements do not reach: logs, container images and
+parameters stored as plain text, for example.
+
+The apply role holds the AWS managed `AdministratorAccess` policy. It has to create IAM
+roles for the cluster and its workloads, and a principal that can create roles and
+attach policies to them can grant itself anything. A list of allowed services would
+therefore not make the role weaker. An administrator can also read every secret in its
+account, the PostgreSQL master secret included. Three things limit the role instead:
+
+- Its trust policy: one repository, one GitHub environment and one branch. The branch
+  is only as closed as its protection. If it accepted direct pushes, anyone with write
+  access could run the apply role without a pull request. A rule that only requires a
+  pull request adds no second person: whoever may merge into the deploy branch can run
+  that account's apply role. For prod the second person is the environment's required
+  reviewer; dev has none.
+- Its account: it holds one environment, and no role in the other account trusts it.
+- Deny statements on the bootstrap resources: the role cannot change the CI roles or
+  the OIDC provider, cannot administer the state bucket, the lock table or the state
+  key, cannot read or write the bootstrap state, and cannot delete the hosted zone.
+
+The Deny statements stop any such change that arrives as a change to the root module.
+They do not stop someone who already controls an apply run, who can create a second
+role without them. Closing that gap needs a permissions boundary on every role the
+pipeline creates. It is left out until an account is shared with a second pipeline.
 
 ## Cluster access and workloads
 
@@ -187,7 +238,7 @@ states:
 
 | State | Contents | Backend |
 |-------|----------|---------|
-| `bootstrap/`, applied once per account | State bucket, lock table, state encryption key, GitHub OIDC provider, CI roles and the public hosted zone | Local for the first apply, then moved into the bucket it created |
+| `bootstrap/`, applied once per account | State bucket, lock table, state encryption key, GitHub OIDC provider, CI roles and the public hosted zone | Local for the first apply, then moved into the bucket it created, key `bootstrap/terraform.tfstate` |
 | Root module | Everything else for the environment | The account's state bucket, key `platform/terraform.tfstate` |
 
 - The accounts share no AWS resource. Each has its own state bucket, lock table,
@@ -195,19 +246,27 @@ states:
   trusts the other. They do share this repository, whose workflows can assume the CI
   roles of both. Every bootstrap resource exists twice; in return, an IAM policy that is
   too broad in dev grants no access to prod.
-- Environments are data, not code: `environments/<env>/terraform.tfvars` holds the
-  values and `environments/<env>/backend.hcl` locates the state, in a different bucket
-  for each environment. Both files have the same keys in dev and prod. Both are
-  committed and hold no secret.
+- Environments are data, not code. Each `environments/<env>/` directory holds three
+  files: `terraform.tfvars` with the values of the root module, `bootstrap.tfvars` with
+  the values of the bootstrap stack, and `backend.hcl`, which names the account's state
+  bucket, lock table and encryption key. Each file has the same keys in dev and prod.
+  All are committed and hold no secret.
+- `backend.hcl` is read by both stacks, so it does not name the state object. Each
+  stack writes its own key in its `backend` block. A key in the shared file would point
+  both stacks at one object.
 - Each environment's variable file names its AWS account ID, and the provider is
   restricted to that account with `allowed_account_ids`. A run that holds another
   account's credentials fails when the provider is configured, instead of changing the
   wrong account. The check is made by the provider. It does not cover the state backend,
-  which takes its configuration from `backend.hcl`. The bootstrap stack takes its
-  account ID as a variable and sets the same restriction.
-- State locking uses a DynamoDB table. Current Terraform prints a deprecation warning
-  for it. It stays because its replacement, `use_lockfile`, is rejected by Terraform
-  1.5 to 1.9, and 1.5 is the oldest version this code supports.
+  which takes its configuration from `backend.hcl`: the backend's own account check
+  needs Terraform 1.6, above the oldest version this code supports. Separate accounts
+  cover the gap, because credentials for one account cannot open the other account's
+  bucket. The bootstrap stack takes its account ID as a variable and sets the same
+  restriction.
+- State locking uses a DynamoDB table. Terraform 1.11 and later print a deprecation
+  warning for it on every init, plan and apply. It stays because its replacement,
+  `use_lockfile`, is rejected by Terraform 1.5 to 1.9, and 1.5 is the oldest version
+  this code supports.
 - Terraform workspaces are not used. All workspaces of a configuration are stored in
   the same backend, so the dev and prod states would sit in one bucket in one account.
   The selected workspace is also local state that never appears in review.
@@ -263,6 +322,10 @@ assumption, in the batch named.
 | The Kafka version string for a cluster without ZooKeeper is inferred from the documented pattern | Read the valid strings from the MSK API before the first apply | Messaging |
 | Node pressure alarms use Container Insights metrics, which may not be published under an IMDS hop limit of 1 | An alarm on the node group's Auto Scaling group CPU | Observability |
 | The controller's write actions are scoped to one target group. The policy has not been exercised by a running controller | Use the controller's published policy without the scoping | Edge |
+| The token subject of `pull_request` and `environment` runs, in the form that carries the owner and repository IDs, is inferred from the documented example for a branch | Read the claims of a real token in the first pipeline run and correct the GitHub values of the bootstrap stack | CI pipeline |
+| The pull request plan runs with `-lock=false` under a role that has no write permission. That `init` and such a plan write nothing rests on the S3 backend source of Terraform 1.5.7 and 1.15.1 and has not been exercised by a real run | Allow the plan role to write the lock item only, through a condition on the lock table's partition key. A pull request can then hold the lock, or release one an apply holds | CI pipeline |
+| Moving the bootstrap state from the local file into the bucket follows the documented procedure and has not been run | Keep the local state file until a plan against the bucket reports no changes | Foundation |
+| Required reviewers on the `prod` environment and protection of `develop` and `main` are assumed to be available. On a free GitHub plan both exist for public repositories only | The `ref` condition in IAM holds without either. Without required reviewers or a required approving review, anyone with write access can run an apply role, by a direct push or by merging their own pull request, so write access is then limited to the people trusted with both accounts | CI pipeline |
 
 ## Delivery roadmap
 
