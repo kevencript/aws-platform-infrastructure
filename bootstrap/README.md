@@ -11,7 +11,7 @@ account and once in the prod account. The two accounts share no resource.
 
 | File | Resources | Why |
 |------|-----------|-----|
-| `state.tf` | KMS key and alias, S3 bucket, DynamoDB table | Encrypted, versioned and locked storage for both Terraform states of the account |
+| `state.tf` | KMS key and alias, S3 bucket and its policy, DynamoDB table | Encrypted, versioned and locked storage for both Terraform states of the account, reachable only over TLS |
 | `dns.tf` | Public Route 53 hosted zone | The parent domain delegates to it once, and a recreated zone would get new name servers |
 | `github_oidc.tf` | IAM OIDC provider for GitHub Actions | Workflow jobs exchange a GitHub token for short-lived credentials; no access key exists |
 | `ci_plan_role.tf` | Plan role | Assumed by pull request runs: read-only, with no write permission |
