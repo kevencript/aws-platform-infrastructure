@@ -48,8 +48,10 @@ run again.
   administrator credentials for the target account in the shell. The provider stops if
   the credentials belong to any other account.
 - The account has no IAM OIDC provider for `token.actions.githubusercontent.com` yet.
-  An account can hold only one per issuer. If one exists, import it instead of creating
-  it.
+  An account can hold only one per issuer. If one exists, bring it into this stack's
+  state with the `terraform import` command before the first apply, not with an import
+  block: the quality gate calls this stack as a module, and Terraform 1.5 rejects an
+  import block there.
 - The repository issues tokens with immutable subject claims
   (`repo:OWNER@OWNER-ID/REPO@REPO-ID:...`). That is the default for repositories created
   after 15 July 2026. An older repository opts in from its Actions OIDC settings.
@@ -123,7 +125,9 @@ under `environments/prod`.
 
 9. Once for the repository: protect `develop` and `main` so that changes reach them
    through pull requests only. The apply role trusts every run on its deploy branch,
-   whoever pushed the commit.
+   whoever pushed the commit. The rule adds no second person unless it also requires an
+   approving review: whoever may merge into the deploy branch can run that account's
+   apply role.
 
 Steps 1 to 8 apply to the second account as well, with its own credentials and its own
 files under `environments/`.
@@ -146,5 +150,5 @@ a deliberate edit of the code, not a side effect of a plan.
 ## Status
 
 Nothing in this repository is applied to an AWS account. The code is formatted,
-validated on Terraform 1.5 and on the current release, and scanned. The steps above
+validated on Terraform 1.5.7 and 1.15.1, and scanned. The steps above
 follow the Terraform and AWS documentation and have not been run.
