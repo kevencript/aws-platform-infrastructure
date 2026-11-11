@@ -33,3 +33,12 @@ output "redis_app_username" {
   value       = aws_elasticache_user.app.user_name
 }
 
+output "app_policy_json" {
+  description = "Permissions the API needs on the data stores, for its IRSA role."
+  value       = data.aws_iam_policy_document.app.json
+}
+
+output "migrator_policy_json" {
+  description = "Permissions the migration job needs, for its IRSA role."
+  value       = data.aws_iam_policy_document.migrator.json
+}
