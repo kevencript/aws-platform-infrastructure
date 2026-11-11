@@ -96,3 +96,13 @@ variable "github_repository_id" {
     error_message = "The repository ID must hold only digits."
   }
 }
+
+variable "deploy_branch" {
+  description = "The only branch whose workflow runs may assume the apply role, for example develop in dev and main in prod."
+  type        = string
+
+  validation {
+    condition     = can(regex("^[A-Za-z0-9._-]+(/[A-Za-z0-9._-]+)*$", var.deploy_branch)) && !startswith(var.deploy_branch, "refs/")
+    error_message = "Give the branch name only, for example \"main\", not a full ref such as \"refs/heads/main\"."
+  }
+}

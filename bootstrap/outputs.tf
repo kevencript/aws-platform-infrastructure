@@ -25,3 +25,8 @@ output "plan_role_arn" {
   description = "ARN of the plan role. It becomes a GitHub Actions repository variable."
   value       = aws_iam_role.plan.arn
 }
+
+output "apply_role_arn" {
+  description = "ARN of the apply role. It becomes a GitHub Actions repository variable."
+  value       = aws_iam_role.apply.arn
+}
