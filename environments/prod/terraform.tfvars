@@ -27,3 +27,22 @@ node_instance_types          = ["m6i.large"]
 node_scaling                 = { min_size = 3, desired_size = 3, max_size = 6 }
 cluster_admin_principal_arns = ["arn:aws:iam::222222222222:role/platform-prod-cluster-admin"]
 cluster_log_retention_days   = 90
+
+# Data stores. PostgreSQL with a standby in another zone, and Redis with a
+# replica that takes over automatically.
+postgres = {
+  engine_version            = "17"
+  instance_class            = "db.m7g.large"
+  multi_az                  = true
+  allocated_storage_gib     = 100
+  max_allocated_storage_gib = 500
+  backup_retention_days     = 14
+}
+redis = {
+  engine                  = "redis"
+  engine_version          = "7.1"
+  node_type               = "cache.m7g.large"
+  num_nodes               = 2
+  snapshot_retention_days = 7
+}
+data_log_retention_days = 90

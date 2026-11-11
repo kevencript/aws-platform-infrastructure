@@ -116,3 +116,33 @@ variable "cluster_log_retention_days" {
   description = "Days CloudWatch Logs keeps the control plane logs."
   type        = number
 }
+
+# Data stores of the environment. modules/data validates each value.
+
+variable "postgres" {
+  description = "PostgreSQL major version, size, storage, Multi-AZ and backup retention."
+  type = object({
+    engine_version            = string
+    instance_class            = string
+    multi_az                  = bool
+    allocated_storage_gib     = number
+    max_allocated_storage_gib = number
+    backup_retention_days     = number
+  })
+}
+
+variable "redis" {
+  description = "Redis engine, version, node type, number of nodes and snapshot retention."
+  type = object({
+    engine                  = string
+    engine_version          = string
+    node_type               = string
+    num_nodes               = number
+    snapshot_retention_days = number
+  })
+}
+
+variable "data_log_retention_days" {
+  description = "Days CloudWatch Logs keeps the logs of PostgreSQL and Redis."
+  type        = number
+}
