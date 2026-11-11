@@ -10,10 +10,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Added
 
 - Bootstrap stack, applied once in each AWS account (`bootstrap/`): encrypted and
-  versioned state bucket, lock table, state encryption key, public hosted zone, GitHub
-  OIDC provider, and the two CI roles. The plan role is read-only without access to
-  secret values. The apply role can be assumed only from its GitHub environment and its
-  deploy branch.
+  versioned state bucket that refuses requests without TLS, lock table, state
+  encryption key, public hosted zone, GitHub OIDC provider, and the two CI roles. The
+  plan role is read-only, cannot take the state lock and has no access to secret
+  values. The apply role can be assumed only from its GitHub environment and its deploy
+  branch.
 - Root module skeleton: Terraform and provider version constraints, S3 backend, AWS
   provider restricted to the environment's account, default tags, identity variables
   and the lookup of the hosted zone.
