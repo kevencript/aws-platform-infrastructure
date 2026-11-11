@@ -130,5 +130,11 @@ resource "aws_eks_node_group" "this" {
     create_before_destroy = true
   }
 
-  depends_on = [aws_iam_role_policy_attachment.node]
+  # The node role's policies, and the two add-ons a node needs to become
+  # Ready. Without them the group would wait for nodes that never join.
+  depends_on = [
+    aws_iam_role_policy_attachment.node,
+    aws_eks_addon.vpc_cni,
+    aws_eks_addon.kube_proxy,
+  ]
 }
