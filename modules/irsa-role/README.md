@@ -28,7 +28,7 @@ Kubernetes objects.
 | `oidc_issuer_url` | `string` | The cluster's issuer URL, with or without `https://` |
 | `namespace`, `service_account` | `string` | The one service account the role trusts |
 | `managed_policy_arns` | `map(string)` | Managed policies, under keys chosen by the caller. Default: none |
-| `inline_policy_json` | `string` | A policy of the role's own. Default: none |
+| `inline_policies` | `map(string)` | Policy documents of the role's own, under keys chosen by the caller. Default: none |
 
 ## Outputs
 

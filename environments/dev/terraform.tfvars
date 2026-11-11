@@ -27,3 +27,22 @@ node_instance_types          = ["t3.large"]
 node_scaling                 = { min_size = 2, desired_size = 2, max_size = 4 }
 cluster_admin_principal_arns = ["arn:aws:iam::111111111111:role/platform-dev-cluster-admin"]
 cluster_log_retention_days   = 30
+
+# Data stores. One PostgreSQL instance and one Redis node: dev accepts being
+# down while their zone is.
+postgres = {
+  engine_version            = "17"
+  instance_class            = "db.t4g.small"
+  multi_az                  = false
+  allocated_storage_gib     = 20
+  max_allocated_storage_gib = 50
+  backup_retention_days     = 7
+}
+redis = {
+  engine                  = "redis"
+  engine_version          = "7.1"
+  node_type               = "cache.t4g.small"
+  num_nodes               = 1
+  snapshot_retention_days = 1
+}
+data_log_retention_days = 30
