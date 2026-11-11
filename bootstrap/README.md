@@ -127,7 +127,9 @@ under `environments/prod`.
    through pull requests only. The apply role trusts every run on its deploy branch,
    whoever pushed the commit. The rule adds no second person unless it also requires an
    approving review: whoever may merge into the deploy branch can run that account's
-   apply role.
+   apply role. Also require the status checks `checks (Terraform 1.5.7)`,
+   `checks (Terraform 1.15.1)` and `scan` of the `terraform` workflow, so that nothing
+   reaches a deploy branch without them.
 
 Steps 1 to 8 apply to the second account as well, with its own credentials and its own
 files under `environments/`.
