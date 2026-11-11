@@ -122,7 +122,10 @@ subnets and never renumbers existing ones.
   healthy zones. Dev accepts that risk to save cost.
 - An S3 gateway endpoint is attached to the app route tables. It is free and keeps
   image layer downloads off the NAT gateway.
-- VPC flow logs are delivered to an encrypted CloudWatch Logs group.
+- VPC flow logs are delivered to a CloudWatch Logs group encrypted with a key of its
+  own, whose policy lets CloudWatch Logs use it for that group only.
+- The VPC's default security group is emptied of its rules. Nothing uses it, and a
+  resource created without a group of its own then gets no access.
 
 ## Security groups
 
@@ -294,7 +297,7 @@ states:
 
 | Module | Purpose | Consumes |
 |--------|---------|----------|
-| `networking` | VPC, subnet tiers, internet and NAT gateways, routing, S3 endpoint, flow logs | Nothing |
+| `networking` | VPC, subnet tiers, internet and NAT gateways, routing, S3 endpoint, flow logs and their encryption key | Nothing |
 | `security` | All security groups and every cross-layer rule | `networking` |
 | `irsa-role` | Reusable role for one Kubernetes service account | An OIDC provider ARN and issuer URL |
 | `compute` | EKS cluster, managed node group, cluster and node roles, OIDC provider, add-ons | `networking`, `security`; calls `irsa-role` for the add-on roles |
