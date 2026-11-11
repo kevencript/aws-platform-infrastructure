@@ -27,3 +27,8 @@ output "nat_public_ips" {
   description = "Addresses that outbound traffic from the app tier leaves with, for allow-lists outside AWS."
   value       = [for address in aws_eip.nat : address.public_ip]
 }
+
+output "flow_log_group_name" {
+  description = "CloudWatch Logs group that receives the VPC flow logs."
+  value       = aws_cloudwatch_log_group.flow_logs.name
+}
