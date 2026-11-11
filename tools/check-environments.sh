@@ -12,6 +12,10 @@
 # runs terraform validate on it. A variable file and a module's arguments use
 # the same syntax, which is why this needs no credentials and no plan.
 #
+# Because each stack is called as a module, a block that Terraform accepts
+# only in a root module, such as an import block on Terraform 1.5, makes
+# this check fail although the stack itself validates.
+#
 # The content of backend.hcl is not checked beyond its keys: only a real
 # terraform init reads it.
 
@@ -83,6 +87,6 @@ cp .terraform.lock.hcl "$CHECK_DIR/"
 
 "$TERRAFORM" -chdir="$CHECK_DIR" init -no-color -backend=false -input=false -lockfile=readonly >/dev/null &&
   "$TERRAFORM" -chdir="$CHECK_DIR" validate -no-color >/dev/null ||
-  fail "a variable file does not match its stack. Modules above are named <stack>_<environment>; line numbers refer to $CHECK_DIR/main.tf"
+  fail "the generated configuration is not valid. The usual cause is a variable file that does not match its stack. Modules above are named <stack>_<environment>; line numbers refer to $CHECK_DIR/main.tf"
 
 echo "environments: ok ($*) with $("$TERRAFORM" version | head -n 1)"
