@@ -53,6 +53,7 @@ The project is delivered in batches, one per knowledge area. See the
 │   ├── security/            # every security group and the rules between them
 │   ├── compute/             # EKS cluster, node group, add-ons, OIDC provider
 │   ├── data/                # PostgreSQL and Redis, signed in to with IAM
+│   ├── messaging/           # Kafka on MSK, SASL/IAM over TLS only
 │   ├── irsa-role/           # IAM role for one Kubernetes service account
 │   └── registry/            # ECR repository and lifecycle policy
 ├── environments/
@@ -76,7 +77,7 @@ The project is delivered in batches, one per knowledge area. See the
 ```
 
 Each module has a README with what it creates, its inputs and its outputs. The modules
-for the broker, the edge and the alarms arrive with the next releases.
+for the edge and the alarms arrive with the next release.
 
 ## How to run
 
