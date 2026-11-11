@@ -71,6 +71,42 @@ resource "aws_s3_bucket_public_access_block" "state" {
   restrict_public_buckets = true
 }
 
+# Every request to the bucket must use TLS. Terraform and the AWS SDKs already
+# do, so this changes nothing for them; it refuses any client that would not.
+# A statement that only denies does not make the policy public, so the public
+# access block above does not reject it.
+data "aws_iam_policy_document" "state_bucket" {
+  statement {
+    sid     = "DenyRequestsWithoutTls"
+    effect  = "Deny"
+    actions = ["s3:*"]
+    resources = [
+      aws_s3_bucket.state.arn,
+      "${aws_s3_bucket.state.arn}/*",
+    ]
+
+    principals {
+      type        = "*"
+      identifiers = ["*"]
+    }
+
+    condition {
+      test     = "Bool"
+      variable = "aws:SecureTransport"
+      values   = ["false"]
+    }
+  }
+}
+
+resource "aws_s3_bucket_policy" "state" {
+  bucket = aws_s3_bucket.state.id
+  policy = data.aws_iam_policy_document.state_bucket.json
+
+  # S3 can reject two configuration changes made to one bucket at the same
+  # time, so the policy waits for the public access block.
+  depends_on = [aws_s3_bucket_public_access_block.state]
+}
+
 # The S3 backend takes a lock by writing an item to this table, and requires
 # the partition key to be a string named LockID.
 #
