@@ -23,6 +23,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Provider lock files for Linux and macOS, on amd64 and arm64.
 - Local quality gate (`make check`): format check, validation on Terraform 1.5.7 and
   1.15.1, a check of the environment files against the code, and a trivy scan.
+- GitHub Actions workflow (`.github/workflows/terraform.yml`): the checks of the quality
+  gate on every pull request and push, a plan per account on pull requests, and an apply
+  on a push to `develop` (dev) or `main` (prod), each with its account's CI role through
+  OIDC. Actions are pinned to commit SHAs.
 
 ### Changed
 
