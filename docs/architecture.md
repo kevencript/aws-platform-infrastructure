@@ -168,7 +168,7 @@ No secret is written in code, and none enters a plan or the state.
 | API → Redis | IAM-authenticated ElastiCache user: short-lived tokens over TLS |
 | API → Kafka | SASL/IAM, limited to a topic prefix |
 | Pods → AWS APIs | IRSA: one role per Kubernetes service account, with exact `aud` and `sub` conditions |
-| CI → AWS | GitHub OIDC, set up in each account: a plan role (read-only, with no write permission and no access to secret values) and one apply role for that account's environment (administrator of its account, denied changes to the bootstrap resources) |
+| CI → AWS | GitHub OIDC, set up in each account: a plan role (read-only, with no write permission and no access to secret values) and one apply role for that account's environment (administrator of its account, minus the Deny statements listed under [CI roles](#ci-roles)) |
 
 Any pod on the node group can open a TCP connection to a data store. Only a pod whose
 IAM role was granted access can authenticate to one.
@@ -202,8 +202,11 @@ therefore not make the role weaker. An administrator can also read every secret 
 account, the PostgreSQL master secret included. Three things limit the role instead:
 
 - Its trust policy: one repository, one GitHub environment and one branch. The branch
-  is only as closed as its protection: if it accepted direct pushes, anyone with write
-  access could run the apply role.
+  is only as closed as its protection. If it accepted direct pushes, anyone with write
+  access could run the apply role without a pull request. A rule that only requires a
+  pull request adds no second person: whoever may merge into the deploy branch can run
+  that account's apply role. For prod the second person is the environment's required
+  reviewer; dev has none.
 - Its account: it holds one environment, and no role in the other account trusts it.
 - Deny statements on the bootstrap resources: the role cannot change the CI roles or
   the OIDC provider, cannot administer the state bucket, the lock table or the state
@@ -321,7 +324,7 @@ assumption, in the batch named.
 | The token subject of `pull_request` and `environment` runs, in the form that carries the owner and repository IDs, is inferred from the documented example for a branch | Read the claims of a real token in the first pipeline run and correct the GitHub values of the bootstrap stack | CI pipeline |
 | The pull request plan runs with `-lock=false` under a role that has no write permission. That such a plan needs no write at all rests on the backend's documentation and has not been exercised by a real run | Allow the plan role to write the lock item only, through a condition on the lock table's partition key | CI pipeline |
 | Moving the bootstrap state from the local file into the bucket follows the documented procedure and has not been run | Keep the local state file until a plan against the bucket reports no changes | Foundation |
-| Required reviewers on the `prod` environment and protection of `develop` and `main` are assumed to be available. On a free GitHub plan both exist for public repositories only | The `ref` condition in IAM holds without either. Without protected branches, anyone with write access to the repository can run an apply role, so write access is then limited to the people trusted with both accounts | CI pipeline |
+| Required reviewers on the `prod` environment and protection of `develop` and `main` are assumed to be available. On a free GitHub plan both exist for public repositories only | The `ref` condition in IAM holds without either. Without required reviewers or a required approving review, anyone with write access can run an apply role, by a direct push or by merging their own pull request, so write access is then limited to the people trusted with both accounts | CI pipeline |
 
 ## Delivery roadmap
 
