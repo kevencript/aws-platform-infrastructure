@@ -1,11 +1,12 @@
 # The log groups of the data stores, created before the stores so that RDS
-# writes into them instead of creating groups without a retention or a key.
-# One key encrypts all of them.
+# and ElastiCache write into them instead of creating groups without a
+# retention or a key. One key encrypts all of them.
 
 locals {
   log_group_names = {
     postgresql       = "/aws/rds/instance/${local.postgres_identifier}/postgresql"
     postgres_upgrade = "/aws/rds/instance/${local.postgres_identifier}/upgrade"
+    redis_slow_log   = "/aws/elasticache/${local.redis_id}/slow-log"
   }
 
   log_group_arn_prefix = "arn:${data.aws_partition.current.partition}:logs:${data.aws_region.current.name}:${data.aws_caller_identity.current.account_id}:log-group:"

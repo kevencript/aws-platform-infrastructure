@@ -18,3 +18,18 @@ output "postgres_master_secret_arn" {
   value       = aws_db_instance.postgres.master_user_secret[0].secret_arn
 }
 
+output "redis_primary_endpoint" {
+  description = "Host name of the Redis primary, for reads and writes."
+  value       = aws_elasticache_replication_group.redis.primary_endpoint_address
+}
+
+output "redis_reader_endpoint" {
+  description = "Host name that spreads reads over the replicas."
+  value       = aws_elasticache_replication_group.redis.reader_endpoint_address
+}
+
+output "redis_app_username" {
+  description = "ElastiCache user the API signs in as, with an IAM token."
+  value       = aws_elasticache_user.app.user_name
+}
+

@@ -18,8 +18,18 @@ variable "postgres_security_group_id" {
   type        = string
 }
 
+variable "redis_security_group_id" {
+  description = "The redis security group, which accepts connections from the nodes only."
+  type        = string
+}
+
 variable "postgres_port" {
   description = "Port PostgreSQL listens on. The security group's rule uses the same number."
+  type        = number
+}
+
+variable "redis_port" {
+  description = "Port Redis listens on. The security group's rule uses the same number."
   type        = number
 }
 
@@ -30,6 +40,16 @@ variable "database_name" {
   validation {
     condition     = can(regex("^[a-z][a-z0-9_]{0,62}$", var.database_name))
     error_message = "The database name must start with a letter and contain lower-case letters, digits and underscores."
+  }
+}
+
+variable "app_username" {
+  description = "Name of the API's database user. The API's Redis user is <prefix>-redis-<app_username>."
+  type        = string
+
+  validation {
+    condition     = can(regex("^[a-z][a-z0-9_]{0,30}$", var.app_username))
+    error_message = "The user name must start with a letter and contain lower-case letters, digits and underscores."
   }
 }
 
@@ -63,6 +83,32 @@ variable "postgres" {
   validation {
     condition     = var.postgres.backup_retention_days >= 1 && var.postgres.backup_retention_days <= 35
     error_message = "Keep automated backups for 1 to 35 days."
+  }
+}
+
+variable "redis" {
+  description = "Redis engine, size and resilience."
+  type = object({
+    engine                  = string # "redis", or "valkey"
+    engine_version          = string
+    node_type               = string
+    num_nodes               = number # 1, or more for a replica with automatic failover
+    snapshot_retention_days = number
+  })
+
+  validation {
+    condition     = contains(["redis", "valkey"], var.redis.engine)
+    error_message = "The engine must be \"redis\" or \"valkey\"."
+  }
+
+  validation {
+    condition     = var.redis.num_nodes >= 1 && var.redis.num_nodes <= 6
+    error_message = "A replication group without sharding has 1 to 6 nodes."
+  }
+
+  validation {
+    condition     = var.redis.snapshot_retention_days >= 1 && var.redis.snapshot_retention_days <= 35
+    error_message = "Keep daily snapshots for 1 to 35 days."
   }
 }
 
