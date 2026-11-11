@@ -50,7 +50,10 @@ The project is delivered in batches, one per knowledge area. See the
 ├── outputs.tf
 ├── modules/
 │   ├── networking/          # VPC, subnet tiers, gateways, routes, S3 endpoint, flow logs
-│   └── security/            # every security group and the rules between them
+│   ├── security/            # every security group and the rules between them
+│   ├── compute/             # EKS cluster, node group, add-ons, OIDC provider
+│   ├── irsa-role/           # IAM role for one Kubernetes service account
+│   └── registry/            # ECR repository and lifecycle policy
 ├── environments/
 │   ├── dev/                 # terraform.tfvars, bootstrap.tfvars, backend.hcl
 │   └── prod/                # the same three files, the same keys
@@ -72,7 +75,7 @@ The project is delivered in batches, one per knowledge area. See the
 ```
 
 Each module has a README with what it creates, its inputs and its outputs. The modules
-for the cluster, the data stores, the edge and the alarms arrive with the next releases.
+for the data stores, the edge and the alarms arrive with the next releases.
 
 ## How to run
 

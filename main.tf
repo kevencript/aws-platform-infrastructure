@@ -33,3 +33,24 @@ module "security" {
   name_prefix = local.name_prefix
   vpc_id      = module.networking.vpc_id
 }
+
+# The EKS cluster, its nodes and add-ons, and the OIDC provider for IRSA.
+module "compute" {
+  source = "./modules/compute"
+
+  name_prefix                  = local.name_prefix
+  kubernetes_version           = var.kubernetes_version
+  subnet_ids                   = values(module.networking.app_subnet_ids)
+  node_security_group_id       = module.security.security_group_ids["node"]
+  node_instance_types          = var.node_instance_types
+  node_scaling                 = var.node_scaling
+  cluster_admin_principal_arns = var.cluster_admin_principal_arns
+  cluster_log_retention_days   = var.cluster_log_retention_days
+}
+
+# The service's image repository in this account.
+module "registry" {
+  source = "./modules/registry"
+
+  name = "${var.project}/${var.service_name}"
+}

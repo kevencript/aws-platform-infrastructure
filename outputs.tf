@@ -26,3 +26,23 @@ output "security_group_ids" {
   description = "Security group IDs by role: alb, node, rds, redis and msk."
   value       = module.security.security_group_ids
 }
+
+output "cluster_name" {
+  description = "Name of the EKS cluster."
+  value       = module.compute.cluster_name
+}
+
+output "cluster_endpoint" {
+  description = "URL of the Kubernetes API. Reachable from inside the VPC only."
+  value       = module.compute.cluster_endpoint
+}
+
+output "cluster_oidc_provider_arn" {
+  description = "ARN of the cluster's IAM OIDC provider, which IRSA roles trust."
+  value       = module.compute.oidc_provider_arn
+}
+
+output "ecr_repository_url" {
+  description = "URL of the service's image repository."
+  value       = module.registry.repository_url
+}

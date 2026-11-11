@@ -18,6 +18,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   names groups, not address ranges.
 - Network values for `dev` (two zones, one NAT gateway) and `prod` (three zones, a NAT
   gateway in each).
+- Compute module (`modules/compute`): EKS cluster with a private API endpoint, access
+  entries, Kubernetes secrets and control plane logs encrypted with keys of the account,
+  and standard support only; a managed node group on Amazon Linux 2023 with IMDSv2 and a
+  hop limit of 1; the `vpc-cni`, `kube-proxy` and `coredns` add-ons; the OIDC provider
+  for IRSA.
+- IRSA role module (`modules/irsa-role`): an IAM role trusted by exactly one Kubernetes
+  service account.
+- Registry module (`modules/registry`): ECR repository with immutable tags, scan on
+  push, a key of the account and a lifecycle policy.
+- Cluster and repository values for `dev` (two t3.large nodes) and `prod` (at least
+  three m6i.large nodes).
 
 ## [0.2.0] - 2026-11-11
 
