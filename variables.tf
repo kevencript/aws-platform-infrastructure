@@ -51,3 +51,25 @@ variable "domain_name" {
     error_message = "The domain name must be lower case, with at least two labels and no trailing dot."
   }
 }
+
+# Network of the environment. modules/networking validates each value.
+
+variable "vpc_cidr" {
+  description = "IPv4 /16 block of the environment's VPC."
+  type        = string
+}
+
+variable "availability_zones" {
+  description = "Zones of the environment, in a fixed order. Append to add one; never reorder."
+  type        = list(string)
+}
+
+variable "nat_gateway_mode" {
+  description = "\"per_az\" for a NAT gateway in every zone, \"single\" for one shared gateway."
+  type        = string
+}
+
+variable "flow_log_retention_days" {
+  description = "Days CloudWatch Logs keeps the VPC flow logs."
+  type        = number
+}
