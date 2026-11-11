@@ -13,3 +13,7 @@ output "cluster_name" {
   value       = aws_msk_cluster.kafka.cluster_name
 }
 
+output "app_policy_json" {
+  description = "Permissions the API needs on the cluster, for its IRSA role."
+  value       = data.aws_iam_policy_document.app.json
+}

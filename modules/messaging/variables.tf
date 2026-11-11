@@ -50,3 +50,12 @@ variable "kafka" {
   }
 }
 
+variable "app_name_prefix" {
+  description = "Start of the names of the topics and consumer groups the API may use, ending with a separator, for example \"api.\"."
+  type        = string
+
+  validation {
+    condition     = can(regex("^[a-z0-9][a-z0-9._-]*[._-]$", var.app_name_prefix))
+    error_message = "The prefix must end with \".\", \"_\" or \"-\", so that \"api.\" cannot also match a name such as \"apiary\"."
+  }
+}
