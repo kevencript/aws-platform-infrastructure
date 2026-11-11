@@ -15,3 +15,8 @@ output "backend_config" {
     kms_key_id     = "${aws_kms_alias.state.name}"
   EOT
 }
+
+output "name_servers" {
+  description = "Name servers of the public hosted zone. The parent domain needs an NS record for the zone name with these values."
+  value       = aws_route53_zone.public.name_servers
+}
