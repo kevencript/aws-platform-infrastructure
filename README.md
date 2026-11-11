@@ -34,7 +34,7 @@ The project is delivered in batches, one per knowledge area. See the
 |---------|-------|--------|
 | `0.1.0` | Architecture diagram, written plan, contribution conventions | Released |
 | `0.2.0` | Terraform foundation and CI pipeline | Released |
-| `0.3.0` | Networking, security groups and compute | Planned |
+| `0.3.0` | Networking, security groups and compute | In progress |
 | `0.4.0` | Data layer and messaging | Planned |
 | `0.5.0` | Edge and observability | Planned |
 | `1.0.0` | Documentation and final review | Planned |
@@ -48,6 +48,9 @@ The project is delivered in batches, one per knowledge area. See the
 ├── variables.tf             #   identity of the environment
 ├── main.tf                  #   module wiring; today, the hosted zone lookup
 ├── outputs.tf
+├── modules/
+│   ├── networking/          # VPC, subnet tiers, gateways, routes, S3 endpoint, flow logs
+│   └── security/            # every security group and the rules between them
 ├── environments/
 │   ├── dev/                 # terraform.tfvars, bootstrap.tfvars, backend.hcl
 │   └── prod/                # the same three files, the same keys
@@ -68,7 +71,8 @@ The project is delivered in batches, one per knowledge area. See the
 └── CHANGELOG.md
 ```
 
-The modules of the platform (`modules/`) arrive with the next releases.
+Each module has a README with what it creates, its inputs and its outputs. The modules
+for the cluster, the data stores, the edge and the alarms arrive with the next releases.
 
 ## How to run
 
