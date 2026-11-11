@@ -41,3 +41,13 @@ variable "aws_account_id" {
     error_message = "The account ID must be exactly 12 digits, written as a string so that leading zeros are kept."
   }
 }
+
+variable "domain_name" {
+  description = "Name of the environment's public hosted zone, for example dev.example.com. The bootstrap stack creates the zone."
+  type        = string
+
+  validation {
+    condition     = can(regex("^([a-z0-9]([a-z0-9-]*[a-z0-9])?\\.)+[a-z]{2,}$", var.domain_name))
+    error_message = "The domain name must be lower case, with at least two labels and no trailing dot."
+  }
+}
