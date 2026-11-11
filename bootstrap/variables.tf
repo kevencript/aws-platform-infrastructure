@@ -51,3 +51,48 @@ variable "domain_name" {
     error_message = "The domain name must be lower case, with at least two labels and no trailing dot."
   }
 }
+
+# The GitHub repository whose workflows may assume the CI roles. With
+# immutable subject claims, GitHub puts the names and the numeric IDs in the
+# subject of a token, so all four values are needed. The IDs never change; a
+# name can be released and taken by someone else.
+
+variable "github_owner" {
+  description = "Name of the user or organisation that owns the repository, in its exact case."
+  type        = string
+
+  validation {
+    condition     = can(regex("^[A-Za-z0-9-]{1,39}$", var.github_owner))
+    error_message = "The owner name may hold only letters, digits and hyphens, and at most 39 characters."
+  }
+}
+
+variable "github_owner_id" {
+  description = "Numeric ID of the repository owner (github.repository_owner_id in a workflow)."
+  type        = string
+
+  validation {
+    condition     = can(regex("^[0-9]+$", var.github_owner_id))
+    error_message = "The owner ID must hold only digits."
+  }
+}
+
+variable "github_repository" {
+  description = "Name of the repository, without the owner, in its exact case."
+  type        = string
+
+  validation {
+    condition     = can(regex("^[A-Za-z0-9._-]{1,100}$", var.github_repository))
+    error_message = "The repository name may hold only letters, digits, dots, underscores and hyphens."
+  }
+}
+
+variable "github_repository_id" {
+  description = "Numeric ID of the repository (github.repository_id in a workflow)."
+  type        = string
+
+  validation {
+    condition     = can(regex("^[0-9]+$", var.github_repository_id))
+    error_message = "The repository ID must hold only digits."
+  }
+}
