@@ -34,3 +34,13 @@ variable "redis_num_nodes" {
   type        = number
 }
 
+variable "cluster_name" {
+  description = "Name of the EKS cluster."
+  type        = string
+}
+
+variable "node_group_autoscaling_group_name" {
+  description = "Auto Scaling group behind the EKS node group."
+  type        = string
+}
+
