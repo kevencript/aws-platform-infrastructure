@@ -7,6 +7,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- Edge module (`modules/edge`): ACM certificate validated through the hosted zone, an
+  internet-facing Application Load Balancer with an HTTPS listener on TLS 1.2 and 1.3
+  and an HTTP listener that only redirects, an `ip` target group for the API's pods, the
+  alias record of the API's host name, a WAF web ACL with a rate limit and three AWS
+  managed rule groups, its filtered and redacted logs, and the load balancer
+  controller's policy limited to the one target group.
+- IRSA role for the AWS Load Balancer Controller, and the WAF log retention for `dev`
+  and `prod`.
+
 ## [0.4.0] - 2026-11-11
 
 ### Added
