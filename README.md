@@ -55,7 +55,7 @@ The project is delivered in batches, one per platform area. See the
 | `0.3.0` | Networking, security groups and compute | Released |
 | `0.4.0` | Data layer and messaging | Released |
 | `0.5.0` | Edge and observability | Released |
-| `1.0.0` | Documentation and final review | Planned |
+| `1.0.0` | Documentation and final review | In progress |
 
 ## Repository layout
 
