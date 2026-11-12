@@ -91,3 +91,8 @@ output "db_migrator_role_arn" {
   description = "IAM role of the migration job's service account."
   value       = module.db_migrator_role.role_arn
 }
+
+output "msk_bootstrap_brokers" {
+  description = "Kafka brokers to connect to with SASL/IAM over TLS, port 9098."
+  value       = module.messaging.bootstrap_brokers_sasl_iam
+}

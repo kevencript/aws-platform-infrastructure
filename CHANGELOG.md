@@ -18,6 +18,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   module to the policies the data module publishes.
 - Data store values for `dev` (single-AZ PostgreSQL, one Redis node) and `prod`
   (Multi-AZ PostgreSQL, Redis with a replica).
+- Messaging module (`modules/messaging`): Kafka on MSK in KRaft mode, one broker per
+  zone, SASL/IAM over TLS as the only listener, encryption at rest with a key of its
+  own, no automatic topic creation, replication derived from the broker count, broker
+  logs in an encrypted log group, and the API's Kafka policy limited to a name prefix.
+- Kafka permissions on the API's IRSA role, and Kafka values for `dev` (two
+  kafka.t3.small brokers) and `prod` (three kafka.m7g.large brokers).
 
 ### Changed
 

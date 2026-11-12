@@ -146,3 +146,17 @@ variable "data_log_retention_days" {
   description = "Days CloudWatch Logs keeps the logs of PostgreSQL and Redis."
   type        = number
 }
+
+# Kafka of the environment. modules/messaging validates each value.
+
+variable "kafka" {
+  description = "Kafka version, broker type and count per zone, storage, message retention and broker log retention."
+  type = object({
+    version                   = string
+    instance_type             = string
+    brokers_per_zone          = number
+    volume_size_gib           = number
+    retention_hours           = number
+    broker_log_retention_days = number
+  })
+}

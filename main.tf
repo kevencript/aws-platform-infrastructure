@@ -76,6 +76,17 @@ module "data" {
   log_retention_days         = var.data_log_retention_days
 }
 
+# Kafka, in the data subnets.
+module "messaging" {
+  source = "./modules/messaging"
+
+  name_prefix       = local.name_prefix
+  subnet_ids        = values(module.networking.data_subnet_ids)
+  security_group_id = module.security.security_group_ids["msk"]
+  kafka             = var.kafka
+  app_name_prefix   = "${var.service_name}."
+}
+
 # The identities of the service's workloads: one IRSA role per Kubernetes
 # service account. Each module publishes the permissions its clients need,
 # and they are bound here.
@@ -90,6 +101,7 @@ module "app_role" {
 
   inline_policies = {
     data-stores = module.data.app_policy_json
+    kafka       = module.messaging.app_policy_json
   }
 }
 

@@ -46,3 +46,15 @@ redis = {
   snapshot_retention_days = 1
 }
 data_log_retention_days = 30
+
+# Kafka. One small broker in each of the two zones, so topics keep two copies
+# and accept a write with one: dev accepts that a broker failure can lose
+# acknowledged writes.
+kafka = {
+  version                   = "3.9.x.kraft"
+  instance_type             = "kafka.t3.small"
+  brokers_per_zone          = 1
+  volume_size_gib           = 20
+  retention_hours           = 72
+  broker_log_retention_days = 30
+}
