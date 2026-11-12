@@ -322,8 +322,6 @@ assumption, in the batch named.
 |-------|----------|-------|
 | A Redis OSS user group must contain a user named `default`. The plan replaces it with a disabled user that has no password | The Valkey engine, selected by one variable. Its user groups do not need that user | Data |
 | The `msk` group has no egress rule and no rule to itself, on the assumption that traffic between brokers does not pass through it | Add a rule pair, `msk` to itself | Messaging |
-| The Kafka version string for a cluster without ZooKeeper is inferred from the documented pattern | Read the valid strings from the MSK API before the first apply | Messaging |
-| Dev's brokers are `kafka.t3.small` in KRaft mode. That MSK offers KRaft on this burstable type has not been confirmed | `kafka.m7g.large` brokers in dev, or the ZooKeeper variant of the same Kafka version | Messaging |
 | Node pressure alarms use Container Insights metrics, which may not be published under an IMDS hop limit of 1 | The node group's CPU alarm, which reads EC2's own metric and works without the agent, is already in place next to them | Observability |
 | The controller's write actions are scoped to one target group. The policy has not been exercised by a running controller | Use the controller's published policy without the scoping | Edge |
 | The token subject of `pull_request` and `environment` runs, in the form that carries the owner and repository IDs, is inferred from the documented example for a branch | Read the claims of a real token in the first pipeline run and correct the GitHub values of the bootstrap stack | CI pipeline |
