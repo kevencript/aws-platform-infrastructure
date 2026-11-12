@@ -58,3 +58,6 @@ kafka = {
   retention_hours           = 72
   broker_log_retention_days = 30
 }
+
+# Edge. The API answers at https://api.<domain_name>.
+waf_log_retention_days = 30

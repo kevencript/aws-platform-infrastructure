@@ -87,6 +87,20 @@ module "messaging" {
   app_name_prefix   = "${var.service_name}."
 }
 
+# The API's public entry point: certificate, load balancer, WAF and host name.
+module "edge" {
+  source = "./modules/edge"
+
+  name_prefix        = local.name_prefix
+  hostname           = "${var.service_name}.${var.domain_name}"
+  zone_id            = data.aws_route53_zone.public.zone_id
+  vpc_id             = module.networking.vpc_id
+  public_subnet_ids  = values(module.networking.public_subnet_ids)
+  security_group_id  = module.security.security_group_ids["alb"]
+  app_port           = module.security.ports.app
+  log_retention_days = var.waf_log_retention_days
+}
+
 # The identities of the service's workloads: one IRSA role per Kubernetes
 # service account. Each module publishes the permissions its clients need,
 # and they are bound here.
@@ -116,5 +130,21 @@ module "db_migrator_role" {
 
   inline_policies = {
     master-secret = module.data.migrator_policy_json
+  }
+}
+
+# The AWS Load Balancer Controller's identity: it registers the API's pod
+# addresses in the edge module's target group, and nothing else.
+module "lb_controller_role" {
+  source = "./modules/irsa-role"
+
+  name              = "${local.name_prefix}-lb-controller"
+  oidc_provider_arn = module.compute.oidc_provider_arn
+  oidc_issuer_url   = module.compute.oidc_issuer_url
+  namespace         = "kube-system"
+  service_account   = "aws-load-balancer-controller"
+
+  inline_policies = {
+    target-group = module.edge.controller_policy_json
   }
 }
