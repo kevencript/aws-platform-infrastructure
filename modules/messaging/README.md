@@ -45,3 +45,4 @@ subnets, reachable only with IAM over TLS.
 | `bootstrap_brokers_sasl_iam` | Where clients connect |
 | `cluster_arn`, `cluster_name` | The cluster |
 | `app_policy_json` | Permissions for the API's IRSA role |
+| `broker_count` | Number of brokers, numbered from 1 in their metrics |

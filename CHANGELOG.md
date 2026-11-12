@@ -7,6 +7,32 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.0.0] - 2026-11-11
+
+### Added
+
+- Decision records (`docs/adr/`) for the seven main decisions, each with its
+  alternatives and consequences.
+- README sections on the key decisions, the root module's outputs, what was left out and
+  why, the accepted trade-offs and the assumptions.
+
+### Changed
+
+- Dev's Kafka brokers run on `kafka.m7g.large`, the smallest type that offers KRaft
+  mode, so dev keeps the same metadata mode as prod.
+
+### Fixed
+
+- The `node` security group's description contained a character EC2 rejects, which
+  would have failed the first apply; a precondition now names the allowed characters.
+- `modules/messaging` rejects KRaft mode on `kafka.t3.small` brokers, which MSK does not
+  offer.
+- The Container Insights performance log group is created before the CloudWatch agent,
+  with a retention and the cluster's logs key, instead of by the agent without either.
+- Documentation: the environment check runs the rules of each stack's own variables, not
+  those inside modules; how the image lifecycle's third rule counts images; outputs
+  missing from three module READMEs; two closed open points on Kafka.
+
 ## [0.5.0] - 2026-11-11
 
 ### Added
