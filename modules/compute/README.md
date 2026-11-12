@@ -37,8 +37,9 @@ add-ons the cluster needs to run pods, and the OIDC provider that IRSA roles tru
   created before the cluster, so it has a retention and a key.
 
 - **CloudWatch agent, metrics only.** It publishes the node metrics the node pressure
-  alarms read. Container log shipping is off: it would create log groups without a
-  retention or a key of this platform.
+  alarms read, through a performance log group created first, with a retention and the
+  cluster's logs key. Container log shipping is off: it would create log groups without
+  a retention or a key of this platform.
 
 ## Inputs
 

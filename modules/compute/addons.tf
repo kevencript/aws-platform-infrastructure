@@ -88,6 +88,12 @@ module "cloudwatch_agent_role" {
   }
 }
 
+resource "aws_cloudwatch_log_group" "container_insights" {
+  name              = local.container_insights_log_group_name
+  retention_in_days = var.cluster_log_retention_days
+  kms_key_id        = aws_kms_key.cluster_logs.arn
+}
+
 resource "aws_eks_addon" "cloudwatch_observability" {
   cluster_name             = aws_eks_cluster.this.name
   addon_name               = "amazon-cloudwatch-observability"
@@ -105,5 +111,8 @@ resource "aws_eks_addon" "cloudwatch_observability" {
   resolve_conflicts_on_create = "OVERWRITE"
   resolve_conflicts_on_update = "OVERWRITE"
 
-  depends_on = [aws_eks_node_group.this]
+  depends_on = [
+    aws_eks_node_group.this,
+    aws_cloudwatch_log_group.container_insights,
+  ]
 }
