@@ -32,3 +32,8 @@ output "node_role_arn" {
   description = "ARN of the worker nodes' IAM role."
   value       = aws_iam_role.node.arn
 }
+
+output "node_group_autoscaling_group_name" {
+  description = "Auto Scaling group behind the node group. Its CPU alarm works without the CloudWatch agent."
+  value       = aws_eks_node_group.this.resources[0].autoscaling_groups[0].name
+}
