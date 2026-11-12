@@ -87,6 +87,39 @@ module "messaging" {
   app_name_prefix   = "${var.service_name}."
 }
 
+# The API's public entry point: certificate, load balancer, WAF and host name.
+module "edge" {
+  source = "./modules/edge"
+
+  name_prefix        = local.name_prefix
+  hostname           = "${var.service_name}.${var.domain_name}"
+  zone_id            = data.aws_route53_zone.public.zone_id
+  vpc_id             = module.networking.vpc_id
+  public_subnet_ids  = values(module.networking.public_subnet_ids)
+  security_group_id  = module.security.security_group_ids["alb"]
+  app_port           = module.security.ports.app
+  log_retention_days = var.waf_log_retention_days
+}
+
+# Alarms on the data stores, the nodes, Kafka and the API, and the topic
+# they notify.
+module "observability" {
+  source = "./modules/observability"
+
+  name_prefix                       = local.name_prefix
+  alarm_email_addresses             = var.alarm_email_addresses
+  postgres_identifier               = module.data.postgres_identifier
+  postgres_allocated_storage_gib    = var.postgres.allocated_storage_gib
+  redis_replication_group_id        = module.data.redis_replication_group_id
+  redis_num_nodes                   = var.redis.num_nodes
+  cluster_name                      = module.compute.cluster_name
+  node_group_autoscaling_group_name = module.compute.node_group_autoscaling_group_name
+  kafka_cluster_name                = module.messaging.cluster_name
+  kafka_broker_count                = module.messaging.broker_count
+  load_balancer_arn_suffix          = module.edge.load_balancer_arn_suffix
+  target_group_arn_suffix           = module.edge.target_group_arn_suffix
+}
+
 # The identities of the service's workloads: one IRSA role per Kubernetes
 # service account. Each module publishes the permissions its clients need,
 # and they are bound here.
@@ -116,5 +149,21 @@ module "db_migrator_role" {
 
   inline_policies = {
     master-secret = module.data.migrator_policy_json
+  }
+}
+
+# The AWS Load Balancer Controller's identity: it registers the API's pod
+# addresses in the edge module's target group, and nothing else.
+module "lb_controller_role" {
+  source = "./modules/irsa-role"
+
+  name              = "${local.name_prefix}-lb-controller"
+  oidc_provider_arn = module.compute.oidc_provider_arn
+  oidc_issuer_url   = module.compute.oidc_issuer_url
+  namespace         = "kube-system"
+  service_account   = "aws-load-balancer-controller"
+
+  inline_policies = {
+    target-group = module.edge.controller_policy_json
   }
 }

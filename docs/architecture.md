@@ -300,12 +300,12 @@ states:
 | `networking` | VPC, subnet tiers, internet and NAT gateways, routing, S3 endpoint, flow logs and their encryption key | Nothing |
 | `security` | All security groups and every cross-layer rule | `networking` |
 | `irsa-role` | Reusable role for one Kubernetes service account | An OIDC provider ARN and issuer URL |
-| `compute` | EKS cluster, managed node group, cluster and node roles, OIDC provider, the `vpc-cni`, `kube-proxy` and `coredns` add-ons, the keys for Kubernetes secrets and control plane logs | `networking`, `security`; calls `irsa-role` for the add-on roles |
+| `compute` | EKS cluster, managed node group, cluster and node roles, OIDC provider, the `vpc-cni`, `kube-proxy`, `coredns` and CloudWatch agent add-ons, the keys for Kubernetes secrets and control plane logs | `networking`, `security`; calls `irsa-role` for the add-on roles |
 | `data` | RDS PostgreSQL, ElastiCache Redis, their encryption keys and log groups, and the client policies of the API and the migration job | `networking`, `security` |
 | `messaging` | MSK cluster, broker configuration, its keys and broker log group, and the API's Kafka policy | `networking`, `security` |
-| `edge` | ACM certificate and its DNS validation records, load balancer, listeners, target group, Route 53 alias, WAF | `networking`, `security`, the account's public hosted zone, created by the bootstrap stack |
+| `edge` | ACM certificate and its DNS validation records, load balancer, listeners, target group, Route 53 alias, WAF, WAF logs, and the load balancer controller's policy | `networking`, `security`, the account's public hosted zone, created by the bootstrap stack |
 | `registry` | ECR repository, its encryption key and lifecycle policy | Nothing |
-| `observability` | Alarm topic and CloudWatch alarms | Outputs of the modules above |
+| `observability` | Encrypted alarm topic, and CloudWatch alarms on PostgreSQL, Redis, the EKS nodes, Kafka and the API | Outputs of the modules above |
 
 The module that owns a resource publishes the smallest policy a client needs. The root
 module binds those policies to a service account through `irsa-role`. Neither the
@@ -324,7 +324,7 @@ assumption, in the batch named.
 | The `msk` group has no egress rule and no rule to itself, on the assumption that traffic between brokers does not pass through it | Add a rule pair, `msk` to itself | Messaging |
 | The Kafka version string for a cluster without ZooKeeper is inferred from the documented pattern | Read the valid strings from the MSK API before the first apply | Messaging |
 | Dev's brokers are `kafka.t3.small` in KRaft mode. That MSK offers KRaft on this burstable type has not been confirmed | `kafka.m7g.large` brokers in dev, or the ZooKeeper variant of the same Kafka version | Messaging |
-| Node pressure alarms use Container Insights metrics, which may not be published under an IMDS hop limit of 1 | An alarm on the node group's Auto Scaling group CPU | Observability |
+| Node pressure alarms use Container Insights metrics, which may not be published under an IMDS hop limit of 1 | The node group's CPU alarm, which reads EC2's own metric and works without the agent, is already in place next to them | Observability |
 | The controller's write actions are scoped to one target group. The policy has not been exercised by a running controller | Use the controller's published policy without the scoping | Edge |
 | The token subject of `pull_request` and `environment` runs, in the form that carries the owner and repository IDs, is inferred from the documented example for a branch | Read the claims of a real token in the first pipeline run and correct the GitHub values of the bootstrap stack | CI pipeline |
 | The pull request plan runs with `-lock=false` under a role that has no write permission. That `init` and such a plan write nothing rests on the S3 backend source of Terraform 1.5.7 and 1.15.1 and has not been exercised by a real run | Allow the plan role to write the lock item only, through a condition on the lock table's partition key. A pull request can then hold the lock, or release one an apply holds | CI pipeline |

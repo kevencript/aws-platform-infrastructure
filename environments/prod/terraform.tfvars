@@ -57,3 +57,9 @@ kafka = {
   retention_hours           = 168
   broker_log_retention_days = 90
 }
+
+# Edge. The API answers at https://api.<domain_name>.
+waf_log_retention_days = 90
+
+# Alarms. A placeholder address, like the domain.
+alarm_email_addresses = ["platform-alerts@example.com"]

@@ -17,3 +17,8 @@ output "app_policy_json" {
   description = "Permissions the API needs on the cluster, for its IRSA role."
   value       = data.aws_iam_policy_document.app.json
 }
+
+output "broker_count" {
+  description = "Number of brokers. MSK numbers them from 1, the Broker ID dimension of their metrics."
+  value       = aws_msk_cluster.kafka.number_of_broker_nodes
+}

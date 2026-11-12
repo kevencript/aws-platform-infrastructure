@@ -42,3 +42,13 @@ output "migrator_policy_json" {
   description = "Permissions the migration job needs, for its IRSA role."
   value       = data.aws_iam_policy_document.migrator.json
 }
+
+output "postgres_identifier" {
+  description = "Identifier of the PostgreSQL instance, the dimension of its CloudWatch metrics."
+  value       = aws_db_instance.postgres.identifier
+}
+
+output "redis_replication_group_id" {
+  description = "ID of the Redis replication group. Its nodes are <id>-001, <id>-002 and so on."
+  value       = aws_elasticache_replication_group.redis.replication_group_id
+}
