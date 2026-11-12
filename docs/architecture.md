@@ -303,7 +303,7 @@ states:
 | `compute` | EKS cluster, managed node group, cluster and node roles, OIDC provider, the `vpc-cni`, `kube-proxy` and `coredns` add-ons, the keys for Kubernetes secrets and control plane logs | `networking`, `security`; calls `irsa-role` for the add-on roles |
 | `data` | RDS PostgreSQL, ElastiCache Redis, their encryption keys and log groups, and the client policies of the API and the migration job | `networking`, `security` |
 | `messaging` | MSK cluster, broker configuration, its keys and broker log group, and the API's Kafka policy | `networking`, `security` |
-| `edge` | ACM certificate and its DNS validation records, load balancer, listeners, target group, Route 53 alias, WAF | `networking`, `security`, the account's public hosted zone, created by the bootstrap stack |
+| `edge` | ACM certificate and its DNS validation records, load balancer, listeners, target group, Route 53 alias, WAF, WAF logs, and the load balancer controller's policy | `networking`, `security`, the account's public hosted zone, created by the bootstrap stack |
 | `registry` | ECR repository, its encryption key and lifecycle policy | Nothing |
 | `observability` | Alarm topic and CloudWatch alarms | Outputs of the modules above |
 
