@@ -124,7 +124,7 @@ make check
 |------|-----------------|----------------|
 | `make fmt` | `terraform fmt -check -recursive`, and each `backend.hcl` through standard input | Canonical formatting of every `.tf`, `.tfvars` and backend file |
 | `make validate` | `terraform init -backend=false` and `terraform validate`, in the root module and in `bootstrap/` | The code is internally consistent and matches the provider schema |
-| `make environments` | `tools/check-environments.sh` | `dev` and `prod` have the same keys, and every variable file satisfies the types and validation rules of its stack |
+| `make environments` | `tools/check-environments.sh` | `dev` and `prod` have the same keys, and every variable file has the right names and types and passes the rules of its stack's own variables. The rules inside the modules run at plan time |
 | `make scan` | `trivy config`, once per environment | No misconfiguration known to the scanner. Accepted findings are ignored next to the resource, with the reason |
 
 To prove the version floor as well, point `TERRAFORM_MIN` at a Terraform 1.5 binary. It
