@@ -6,12 +6,13 @@
 #   kube-proxy  routes traffic to Kubernetes services. Also before the nodes.
 #   coredns     DNS inside the cluster. It runs as pods, so it needs nodes
 #               and is created after the node group.
-#
-# The CloudWatch agent add-on belongs with the alarms that read its metrics,
-# and arrives with them.
+#   amazon-cloudwatch-observability
+#               the CloudWatch agent, which publishes the node metrics the
+#               node pressure alarms read (Container Insights). Also pods,
+#               also after the node group.
 
 locals {
-  addons = toset(["vpc-cni", "kube-proxy", "coredns"])
+  addons = toset(["vpc-cni", "kube-proxy", "coredns", "amazon-cloudwatch-observability"])
 }
 
 # The version EKS recommends for the cluster's Kubernetes version. When EKS
@@ -64,6 +65,42 @@ resource "aws_eks_addon" "coredns" {
   cluster_name  = aws_eks_cluster.this.name
   addon_name    = "coredns"
   addon_version = data.aws_eks_addon_version.default["coredns"].version
+
+  resolve_conflicts_on_create = "OVERWRITE"
+  resolve_conflicts_on_update = "OVERWRITE"
+
+  depends_on = [aws_eks_node_group.this]
+}
+
+# The agent publishes metrics with a role of its own, for the
+# cloudwatch-agent service account the add-on creates.
+module "cloudwatch_agent_role" {
+  source = "../irsa-role"
+
+  name              = "${local.cluster_name}-cloudwatch-agent"
+  oidc_provider_arn = aws_iam_openid_connect_provider.cluster.arn
+  oidc_issuer_url   = aws_iam_openid_connect_provider.cluster.url
+  namespace         = "amazon-cloudwatch"
+  service_account   = "cloudwatch-agent"
+
+  managed_policy_arns = {
+    agent = "arn:${data.aws_partition.current.partition}:iam::aws:policy/CloudWatchAgentServerPolicy"
+  }
+}
+
+resource "aws_eks_addon" "cloudwatch_observability" {
+  cluster_name             = aws_eks_cluster.this.name
+  addon_name               = "amazon-cloudwatch-observability"
+  addon_version            = data.aws_eks_addon_version.default["amazon-cloudwatch-observability"].version
+  service_account_role_arn = module.cloudwatch_agent_role.role_arn
+
+  # Metrics only. Shipping every container's logs would create log groups
+  # without a retention or a key of this platform, at a cost per gigabyte.
+  configuration_values = jsonencode({
+    containerLogs = {
+      enabled = false
+    }
+  })
 
   resolve_conflicts_on_create = "OVERWRITE"
   resolve_conflicts_on_update = "OVERWRITE"
