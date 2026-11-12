@@ -35,7 +35,7 @@ The project is delivered in batches, one per knowledge area. See the
 | `0.1.0` | Architecture diagram, written plan, contribution conventions | Released |
 | `0.2.0` | Terraform foundation and CI pipeline | Released |
 | `0.3.0` | Networking, security groups and compute | Released |
-| `0.4.0` | Data layer and messaging | Planned |
+| `0.4.0` | Data layer and messaging | Released |
 | `0.5.0` | Edge and observability | Planned |
 | `1.0.0` | Documentation and final review | Planned |
 
@@ -52,6 +52,8 @@ The project is delivered in batches, one per knowledge area. See the
 │   ├── networking/          # VPC, subnet tiers, gateways, routes, S3 endpoint, flow logs
 │   ├── security/            # every security group and the rules between them
 │   ├── compute/             # EKS cluster, node group, add-ons, OIDC provider
+│   ├── data/                # PostgreSQL and Redis, signed in to with IAM
+│   ├── messaging/           # Kafka on MSK, SASL/IAM over TLS only
 │   ├── irsa-role/           # IAM role for one Kubernetes service account
 │   └── registry/            # ECR repository and lifecycle policy
 ├── environments/
@@ -75,7 +77,7 @@ The project is delivered in batches, one per knowledge area. See the
 ```
 
 Each module has a README with what it creates, its inputs and its outputs. The modules
-for the data stores, the edge and the alarms arrive with the next releases.
+for the edge and the alarms arrive with the next release.
 
 ## How to run
 

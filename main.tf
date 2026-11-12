@@ -4,6 +4,10 @@
 locals {
   # One naming scheme for the whole project: <project>-<environment>-<purpose>.
   name_prefix = "${var.project}-${var.environment}"
+
+  # The service's name where hyphens are not allowed: its database and its
+  # database user.
+  app_name = replace(var.service_name, "-", "_")
 }
 
 # The public hosted zone is created by the bootstrap stack, because it must
@@ -53,4 +57,64 @@ module "registry" {
   source = "./modules/registry"
 
   name = "${var.project}/${var.service_name}"
+}
+
+# PostgreSQL and Redis, in the data subnets.
+module "data" {
+  source = "./modules/data"
+
+  name_prefix                = local.name_prefix
+  subnet_ids                 = values(module.networking.data_subnet_ids)
+  postgres_security_group_id = module.security.security_group_ids["rds"]
+  redis_security_group_id    = module.security.security_group_ids["redis"]
+  postgres_port              = module.security.ports.postgres
+  redis_port                 = module.security.ports.redis
+  database_name              = local.app_name
+  app_username               = local.app_name
+  postgres                   = var.postgres
+  redis                      = var.redis
+  log_retention_days         = var.data_log_retention_days
+}
+
+# Kafka, in the data subnets.
+module "messaging" {
+  source = "./modules/messaging"
+
+  name_prefix       = local.name_prefix
+  subnet_ids        = values(module.networking.data_subnet_ids)
+  security_group_id = module.security.security_group_ids["msk"]
+  kafka             = var.kafka
+  app_name_prefix   = "${var.service_name}."
+}
+
+# The identities of the service's workloads: one IRSA role per Kubernetes
+# service account. Each module publishes the permissions its clients need,
+# and they are bound here.
+module "app_role" {
+  source = "./modules/irsa-role"
+
+  name              = "${local.name_prefix}-${var.service_name}"
+  oidc_provider_arn = module.compute.oidc_provider_arn
+  oidc_issuer_url   = module.compute.oidc_issuer_url
+  namespace         = var.service_name
+  service_account   = var.service_name
+
+  inline_policies = {
+    data-stores = module.data.app_policy_json
+    kafka       = module.messaging.app_policy_json
+  }
+}
+
+module "db_migrator_role" {
+  source = "./modules/irsa-role"
+
+  name              = "${local.name_prefix}-${var.service_name}-db-migrator"
+  oidc_provider_arn = module.compute.oidc_provider_arn
+  oidc_issuer_url   = module.compute.oidc_issuer_url
+  namespace         = var.service_name
+  service_account   = "db-migrator"
+
+  inline_policies = {
+    master-secret = module.data.migrator_policy_json
+  }
 }

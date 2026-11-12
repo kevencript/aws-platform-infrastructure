@@ -7,6 +7,32 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.4.0] - 2026-11-11
+
+### Added
+
+- Data module (`modules/data`): PostgreSQL on RDS with an RDS-managed master password,
+  IAM database authentication, TLS required, Multi-AZ when asked, deletion protection
+  and a final snapshot; Redis on ElastiCache with TLS required, encryption at rest and
+  an ElastiCache user that authenticates with IAM; log groups and keys of their own;
+  the client policies of the API and the migration job.
+- IRSA roles for the API's service account and the migration job's, bound in the root
+  module to the policies the data module publishes.
+- Data store values for `dev` (single-AZ PostgreSQL, one Redis node) and `prod`
+  (Multi-AZ PostgreSQL, Redis with a replica).
+- Messaging module (`modules/messaging`): Kafka on MSK in KRaft mode, one broker per
+  zone, SASL/IAM over TLS as the only listener, encryption at rest with a key of its
+  own, no automatic topic creation, replication derived from the broker count, broker
+  logs in an encrypted log group, and the API's Kafka policy limited to a name prefix.
+- Kafka permissions on the API's IRSA role, and Kafka values for `dev` (two
+  kafka.t3.small brokers) and `prod` (three kafka.m7g.large brokers).
+
+### Changed
+
+- `modules/irsa-role` takes inline policies as `inline_policies`, a map with keys chosen
+  by the caller, instead of `inline_policy_json`. A count that compared a document
+  with null could not be known at plan time when the document depends on new resources.
+
 ## [0.3.0] - 2026-11-11
 
 ### Added
