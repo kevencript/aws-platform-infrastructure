@@ -41,9 +41,11 @@ resource "aws_ecr_repository" "this" {
   force_delete = false
 }
 
-# Which images are deleted, in rule order. An image is claimed by the first
-# rule whose selection matches it; the rule with tag status "any" must come
-# last. Deletion happens within a day of an image becoming eligible.
+# Which images are deleted, in rule order. An image that matches the tags of
+# a rule can only be expired by that rule. A later rule still counts it,
+# though: rule 3 keeps the newest images of any kind, and expires only the
+# ones that rules 1 and 2 do not cover. The rule with tag status "any" must
+# come last. Deletion happens within a day of an image becoming eligible.
 data "aws_ecr_lifecycle_policy_document" "this" {
   rule {
     priority    = 1
@@ -79,7 +81,7 @@ data "aws_ecr_lifecycle_policy_document" "this" {
 
   rule {
     priority    = 3
-    description = "Every other image beyond the newest ${var.max_other_images}, such as builds tagged with a commit"
+    description = "Other images, such as commit builds, once outside the newest ${var.max_other_images} images of any kind"
 
     selection {
       tag_status   = "any"

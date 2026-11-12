@@ -14,13 +14,14 @@ The service's image repository in Amazon ECR, in this account.
 
 ## Lifecycle policy
 
-An image is claimed by the first rule that selects it.
+An image that matches the tags of a rule can only be expired by that rule, but later
+rules still count it.
 
 | Priority | Selects | Expires |
 |----------|---------|---------|
 | 1 | Untagged images | After `untagged_expiry_days` |
 | 2 | Tags matching `release_tag_patterns` (`v*`) | Beyond the newest `max_release_images` |
-| 3 | Every other image, such as commit tags | Beyond the newest `max_other_images` |
+| 3 | Every other image, such as commit builds | Once outside the newest `max_other_images` images of any kind, releases and untagged images included |
 
 ## Inputs
 
