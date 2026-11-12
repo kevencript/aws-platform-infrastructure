@@ -44,7 +44,7 @@ pull request plans run without the state lock.
 
 ## Status
 
-The project is delivered in batches, one per knowledge area. See the
+The project is delivered in batches, one per platform area. See the
 [delivery roadmap](docs/architecture.md#delivery-roadmap) and the
 [changelog](CHANGELOG.md).
 
@@ -226,15 +226,31 @@ The root module's outputs are what the workloads and the people running them nee
 | A permissions boundary for the roles the pipeline creates | The next hardening step for the apply role; it constrains every module and cannot be exercised without an account ([ADR 5](docs/adr/0005-administrator-apply-role.md)) |
 | Interface VPC endpoints | Several per zone cost more than the NAT traffic they would save here; the free S3 gateway endpoint is in place |
 | Splitting the root state by layer | The modules are already cut along those boundaries; the split pays off with a second service or team |
-| Access logs for the load balancer and the state bucket, and CloudTrail | Each needs a bucket that cannot use the platform's keys, and CloudTrail belongs to an account baseline |
+| Access logs for the load balancer and the state bucket | Each needs a bucket that cannot use the platform's keys |
+| An account baseline: CloudTrail, GuardDuty, AWS Config, ECR enhanced scanning | Account-wide services, set once per account by whoever owns it, not by one service's stack |
+| AWS Backup plans and a second Region | RDS keeps automated backups and a final snapshot, and prod spreads over three zones; surviving the loss of a Region is a separate design |
 | Container log shipping and dashboards | The alarms cover the platform; the application's logs and dashboards belong to the service |
 | Creating Kafka topics and promoting images from dev to prod | Operations of the service's own pipeline |
 | An apply against AWS | Every check is offline or in the pipeline; the plan's [open points](docs/architecture.md#open-points) list what only an apply would confirm |
 
+## Accepted trade-offs
+
+- **Dev trades resilience for cost.** One NAT gateway, single-AZ PostgreSQL and Redis,
+  and two Kafka brokers whose topics can lose acknowledged writes when a broker fails.
+- **Pull request plans are not locked**, and the prod reviewer approves before the
+  apply job plans again: what the reviewer read is the pull request's plan
+  ([ADR 7](docs/adr/0007-unlocked-pull-request-plans.md)).
+- **The apply role is an administrator of its account**, limited by who can assume it,
+  its account and Deny statements ([ADR 5](docs/adr/0005-administrator-apply-role.md)).
+- **State locking uses a DynamoDB table**, which current Terraform marks as deprecated,
+  because its replacement does not exist in Terraform 1.5.
+- **One service in one Region.**
+
 ## Assumptions
 
 - Two AWS accounts exist, one per environment, and a person with administrator access
-  applies the bootstrap stack once in each.
+  applies the bootstrap stack once in each. The cluster admin role named in each
+  environment's variables exists in that account.
 - A parent domain exists and delegates each environment's zone to the name servers the
   bootstrap stack outputs.
 - The repository is public, so GitHub environments with required reviewers and branch
