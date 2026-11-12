@@ -65,3 +65,4 @@ add-ons the cluster needs to run pods, and the OIDC provider that IRSA roles tru
 | `cluster_security_group_id` | The group EKS created |
 | `oidc_provider_arn`, `oidc_issuer_url` | For IRSA roles |
 | `node_role_arn` | The nodes' role |
+| `node_group_autoscaling_group_name` | The node group's Auto Scaling group, for an alarm that does not need the agent |
