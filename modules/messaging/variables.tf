@@ -29,6 +29,12 @@ variable "kafka" {
     broker_log_retention_days = number
   })
 
+  # MSK does not offer kafka.t3.small brokers in KRaft mode.
+  validation {
+    condition     = !(endswith(var.kafka.version, ".kraft") && var.kafka.instance_type == "kafka.t3.small")
+    error_message = "kafka.t3.small brokers cannot run in KRaft mode. Use a larger type, or a version without the .kraft suffix."
+  }
+
   validation {
     condition     = var.kafka.brokers_per_zone >= 1
     error_message = "Each zone needs at least one broker."
