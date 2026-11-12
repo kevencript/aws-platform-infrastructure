@@ -167,3 +167,10 @@ variable "waf_log_retention_days" {
   description = "Days CloudWatch Logs keeps the WAF logs."
   type        = number
 }
+
+# Alarms.
+
+variable "alarm_email_addresses" {
+  description = "Addresses that receive the alarm notifications. Each must confirm its subscription."
+  type        = list(string)
+}

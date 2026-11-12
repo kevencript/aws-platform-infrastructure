@@ -61,3 +61,6 @@ kafka = {
 
 # Edge. The API answers at https://api.<domain_name>.
 waf_log_retention_days = 30
+
+# Alarms. A placeholder address, like the domain.
+alarm_email_addresses = ["platform-alerts@example.com"]

@@ -17,6 +17,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   controller's policy limited to the one target group.
 - IRSA role for the AWS Load Balancer Controller, and the WAF log retention for `dev`
   and `prod`.
+- Observability module (`modules/observability`): an alarm topic encrypted with a key
+  that CloudWatch alarms may use, and alarms on PostgreSQL CPU and free storage, Redis
+  memory per node, EKS node CPU, memory and file system from Container Insights, the
+  node group's CPU from EC2, Kafka offline partitions and broker disks, and the API's
+  server errors and unhealthy pods.
+- The CloudWatch agent add-on in `modules/compute`, with an IRSA role of its own and
+  container log shipping off.
+- Outputs the alarms need: the node group's Auto Scaling group, the PostgreSQL
+  identifier, the Redis replication group ID and the Kafka broker count.
 
 ## [0.4.0] - 2026-11-11
 

@@ -121,3 +121,8 @@ output "waf_web_acl_arn" {
   description = "ARN of the WAF web ACL in front of the load balancer."
   value       = module.edge.web_acl_arn
 }
+
+output "alarm_topic_arn" {
+  description = "SNS topic every alarm notifies."
+  value       = module.observability.alarm_topic_arn
+}

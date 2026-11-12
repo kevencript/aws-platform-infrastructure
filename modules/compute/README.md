@@ -8,7 +8,7 @@ add-ons the cluster needs to run pods, and the OIDC provider that IRSA roles tru
 | `cluster.tf` | Cluster role, the key that encrypts Kubernetes secrets, the control plane log group and its key, the cluster, the IAM OIDC provider |
 | `access.tf` | An access entry with cluster admin rights for each named IAM principal |
 | `nodes.tf` | Node role, launch template and managed node group on Amazon Linux 2023 |
-| `addons.tf` | The `vpc-cni` add-on with its own IRSA role, `kube-proxy` and `coredns` |
+| `addons.tf` | The `vpc-cni` add-on with its own IRSA role, `kube-proxy`, `coredns`, and the CloudWatch agent add-on with its own IRSA role |
 
 ## What to know
 
@@ -27,8 +27,8 @@ add-ons the cluster needs to run pods, and the OIDC provider that IRSA roles tru
   the node's credentials, so every pod permission comes from IRSA. The VPC CNI policy is
   on the add-on's own role for the same reason, not on the node role.
 - **Add-on order.** `vpc-cni` and `kube-proxy` exist before the node group, because a
-  node without them never becomes Ready. `coredns` runs as pods, so it waits for the
-  nodes.
+  node without them never becomes Ready. `coredns` and the CloudWatch agent run as pods,
+  so they wait for the nodes.
 - **Add-on versions.** Each add-on runs the version EKS recommends for the cluster's
   Kubernetes version. When EKS changes that recommendation, a plan shows the upgrade.
 - **Standard support only.** When a Kubernetes version leaves standard support, EKS
@@ -36,7 +36,9 @@ add-ons the cluster needs to run pods, and the OIDC provider that IRSA roles tru
 - **Secrets and logs encrypted with keys of the account.** The control plane log group is
   created before the cluster, so it has a retention and a key.
 
-The CloudWatch agent add-on arrives with the alarms that read its metrics.
+- **CloudWatch agent, metrics only.** It publishes the node metrics the node pressure
+  alarms read. Container log shipping is off: it would create log groups without a
+  retention or a key of this platform.
 
 ## Inputs
 

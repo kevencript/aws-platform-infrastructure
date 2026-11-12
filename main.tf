@@ -101,6 +101,25 @@ module "edge" {
   log_retention_days = var.waf_log_retention_days
 }
 
+# Alarms on the data stores, the nodes, Kafka and the API, and the topic
+# they notify.
+module "observability" {
+  source = "./modules/observability"
+
+  name_prefix                       = local.name_prefix
+  alarm_email_addresses             = var.alarm_email_addresses
+  postgres_identifier               = module.data.postgres_identifier
+  postgres_allocated_storage_gib    = var.postgres.allocated_storage_gib
+  redis_replication_group_id        = module.data.redis_replication_group_id
+  redis_num_nodes                   = var.redis.num_nodes
+  cluster_name                      = module.compute.cluster_name
+  node_group_autoscaling_group_name = module.compute.node_group_autoscaling_group_name
+  kafka_cluster_name                = module.messaging.cluster_name
+  kafka_broker_count                = module.messaging.broker_count
+  load_balancer_arn_suffix          = module.edge.load_balancer_arn_suffix
+  target_group_arn_suffix           = module.edge.target_group_arn_suffix
+}
+
 # The identities of the service's workloads: one IRSA role per Kubernetes
 # service account. Each module publishes the permissions its clients need,
 # and they are bound here.

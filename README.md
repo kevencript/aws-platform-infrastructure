@@ -55,6 +55,7 @@ The project is delivered in batches, one per knowledge area. See the
 │   ├── data/                # PostgreSQL and Redis, signed in to with IAM
 │   ├── messaging/           # Kafka on MSK, SASL/IAM over TLS only
 │   ├── edge/                # certificate, load balancer, WAF, host name
+│   ├── observability/       # alarm topic and CloudWatch alarms on every layer
 │   ├── irsa-role/           # IAM role for one Kubernetes service account
 │   └── registry/            # ECR repository and lifecycle policy
 ├── environments/
@@ -77,8 +78,7 @@ The project is delivered in batches, one per knowledge area. See the
 └── CHANGELOG.md
 ```
 
-Each module has a README with what it creates, its inputs and its outputs. The module
-for the alarms arrives with the next batch.
+Each module has a README with what it creates, its inputs and its outputs.
 
 ## How to run
 
