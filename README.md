@@ -35,7 +35,7 @@ The project is delivered in batches, one per knowledge area. See the
 | `0.1.0` | Architecture diagram, written plan, contribution conventions | Released |
 | `0.2.0` | Terraform foundation and CI pipeline | Released |
 | `0.3.0` | Networking, security groups and compute | Released |
-| `0.4.0` | Data layer and messaging | In progress |
+| `0.4.0` | Data layer and messaging | Released |
 | `0.5.0` | Edge and observability | Planned |
 | `1.0.0` | Documentation and final review | Planned |
 
