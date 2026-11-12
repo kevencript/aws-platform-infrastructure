@@ -160,3 +160,10 @@ variable "kafka" {
     broker_log_retention_days = number
   })
 }
+
+# Edge of the environment.
+
+variable "waf_log_retention_days" {
+  description = "Days CloudWatch Logs keeps the WAF logs."
+  type        = number
+}

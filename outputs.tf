@@ -96,3 +96,28 @@ output "msk_bootstrap_brokers" {
   description = "Kafka brokers to connect to with SASL/IAM over TLS, port 9098."
   value       = module.messaging.bootstrap_brokers_sasl_iam
 }
+
+output "api_url" {
+  description = "URL of the API."
+  value       = module.edge.url
+}
+
+output "load_balancer_dns_name" {
+  description = "DNS name AWS gives the load balancer; the API's host name is an alias of it."
+  value       = module.edge.load_balancer_dns_name
+}
+
+output "target_group_name" {
+  description = "Target group the TargetGroupBinding names, for the AWS Load Balancer Controller."
+  value       = module.edge.target_group_name
+}
+
+output "lb_controller_role_arn" {
+  description = "IAM role of the AWS Load Balancer Controller's service account."
+  value       = module.lb_controller_role.role_arn
+}
+
+output "waf_web_acl_arn" {
+  description = "ARN of the WAF web ACL in front of the load balancer."
+  value       = module.edge.web_acl_arn
+}
