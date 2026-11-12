@@ -47,12 +47,13 @@ redis = {
 }
 data_log_retention_days = 30
 
-# Kafka. One small broker in each of the two zones, so topics keep two copies
-# and accept a write with one: dev accepts that a broker failure can lose
-# acknowledged writes.
+# Kafka. One broker in each of the two zones, so topics keep two copies and
+# accept a write with one: dev accepts that a broker failure can lose
+# acknowledged writes. The brokers run in KRaft mode like prod's, which MSK
+# does not offer on kafka.t3.small, so they are the smallest type that does.
 kafka = {
   version                   = "3.9.x.kraft"
-  instance_type             = "kafka.t3.small"
+  instance_type             = "kafka.m7g.large"
   brokers_per_zone          = 1
   volume_size_gib           = 20
   retention_hours           = 72
