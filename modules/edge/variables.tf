@@ -55,3 +55,23 @@ variable "ssl_policy" {
   default     = "ELBSecurityPolicy-TLS13-1-2-Res-PQ-2025-09"
 }
 
+variable "waf_rate_limit" {
+  description = "Requests one address may send in five minutes before the WAF blocks it."
+  type        = number
+  default     = 2000
+
+  validation {
+    condition     = var.waf_rate_limit >= 10
+    error_message = "WAF rate limits start at 10 requests."
+  }
+}
+
+variable "log_retention_days" {
+  description = "Days CloudWatch Logs keeps the WAF logs."
+  type        = number
+
+  validation {
+    condition     = contains([1, 3, 5, 7, 14, 30, 60, 90, 120, 150, 180, 365, 400, 545, 731, 1096, 1827, 2192, 2557, 2922, 3288, 3653], var.log_retention_days)
+    error_message = "The retention must be one of the values CloudWatch Logs accepts, for example 30 or 90."
+  }
+}

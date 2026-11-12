@@ -33,3 +33,8 @@ output "target_group_arn_suffix" {
   value       = aws_lb_target_group.api.arn_suffix
 }
 
+output "web_acl_arn" {
+  description = "ARN of the WAF web ACL."
+  value       = aws_wafv2_web_acl.api.arn
+}
+
