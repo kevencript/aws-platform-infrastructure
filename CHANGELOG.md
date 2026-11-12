@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.0.0] - 2026-11-11
+
 ### Added
 
 - Decision records (`docs/adr/`) for the seven main decisions, each with its
