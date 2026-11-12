@@ -44,3 +44,28 @@ variable "node_group_autoscaling_group_name" {
   type        = string
 }
 
+variable "kafka_cluster_name" {
+  description = "Name of the MSK cluster."
+  type        = string
+}
+
+variable "kafka_broker_count" {
+  description = "Number of Kafka brokers."
+  type        = number
+}
+
+variable "load_balancer_arn_suffix" {
+  description = "Identifier of the load balancer in CloudWatch metrics."
+  type        = string
+}
+
+variable "target_group_arn_suffix" {
+  description = "Identifier of the API's target group in CloudWatch metrics."
+  type        = string
+}
+
+variable "api_5xx_threshold" {
+  description = "Server errors from the API in 5 minutes above which the alarm fires."
+  type        = number
+  default     = 10
+}
