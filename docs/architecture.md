@@ -331,7 +331,7 @@ assumption, in the batch named.
 
 ## Delivery roadmap
 
-Work lands in batches, one per knowledge area. Each batch is a `feature/*` branch and
+Work lands in batches, one per platform area. Each batch is a `feature/*` branch and
 one pull request into `develop`. Releases group related batches.
 
 | Release | Batches |
