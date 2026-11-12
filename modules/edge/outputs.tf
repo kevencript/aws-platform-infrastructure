@@ -38,3 +38,7 @@ output "web_acl_arn" {
   value       = aws_wafv2_web_acl.api.arn
 }
 
+output "controller_policy_json" {
+  description = "Permissions the AWS Load Balancer Controller needs, for its IRSA role."
+  value       = data.aws_iam_policy_document.controller.json
+}
