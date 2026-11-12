@@ -14,7 +14,12 @@ locals {
   # EKS writes control plane logs to this group. Created here first, so it
   # has a retention and a key; EKS would otherwise create it without either.
   cluster_log_group_name = "/aws/eks/${local.cluster_name}/cluster"
-  cluster_log_group_arn  = "arn:${data.aws_partition.current.partition}:logs:${data.aws_region.current.name}:${data.aws_caller_identity.current.account_id}:log-group:${local.cluster_log_group_name}"
+
+  # The CloudWatch agent writes performance events here (addons.tf), and
+  # would otherwise create the group itself, without a retention or a key.
+  container_insights_log_group_name = "/aws/containerinsights/${local.cluster_name}/performance"
+
+  log_group_arn_prefix = "arn:${data.aws_partition.current.partition}:logs:${data.aws_region.current.name}:${data.aws_caller_identity.current.account_id}:log-group:"
 }
 
 # --- cluster role
@@ -72,10 +77,10 @@ data "aws_iam_policy_document" "cluster_logs_key" {
     }
   }
 
-  # Same pattern as the flow logs: CloudWatch Logs may use the key for this
-  # one log group.
+  # Same pattern as the flow logs: CloudWatch Logs may use the key for the
+  # cluster's two log groups only.
   statement {
-    sid    = "CloudWatchLogsForTheClusterLogGroup"
+    sid    = "CloudWatchLogsForTheClusterLogGroups"
     effect = "Allow"
     actions = [
       "kms:Encrypt*",
@@ -94,13 +99,16 @@ data "aws_iam_policy_document" "cluster_logs_key" {
     condition {
       test     = "ArnEquals"
       variable = "kms:EncryptionContext:aws:logs:arn"
-      values   = [local.cluster_log_group_arn]
+      values = [
+        "${local.log_group_arn_prefix}${local.cluster_log_group_name}",
+        "${local.log_group_arn_prefix}${local.container_insights_log_group_name}",
+      ]
     }
   }
 }
 
 resource "aws_kms_key" "cluster_logs" {
-  description         = "Encrypts the control plane logs of ${local.cluster_name}"
+  description         = "Encrypts the control plane and Container Insights logs of ${local.cluster_name}"
   enable_key_rotation = true
   policy              = data.aws_iam_policy_document.cluster_logs_key.json
 }

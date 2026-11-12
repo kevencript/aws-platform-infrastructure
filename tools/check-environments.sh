@@ -5,7 +5,13 @@
 #   1. Every environment has the same three files, with the same keys.
 #   2. The values that terraform.tfvars and bootstrap.tfvars share are equal.
 #   3. Each variable file satisfies the variables of its stack: no unknown
-#      name, no missing value, the right types and every validation rule.
+#      name, no missing value, the right types, and the validation rules of
+#      the stack's own variables.
+#
+# The rules inside the root module's child modules are not evaluated here:
+# during validate, a value the root module passes on to a module is unknown,
+# so the module's rules wait for a plan. A plan runs them before any call to
+# AWS, and the pipeline plans every pull request.
 #
 # Check 3 writes a throwaway configuration that calls each stack as a module
 # and passes the content of its variable file as the module's arguments, then

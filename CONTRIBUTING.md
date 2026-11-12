@@ -42,7 +42,8 @@ type(scope): lowercase imperative summary
 Scopes name the area touched: a module (`networking`, `security`, `compute`, `data`,
 `messaging`, `edge`, `registry`, `observability`, `irsa-role`), a part of the root
 (`root`, `bootstrap`, `environments`), or a document or tool (`readme`, `architecture`,
-`diagram`, `changelog`, `contributing`, `github`, `gitignore`, `quality`, `release`).
+`adr`, `diagram`, `changelog`, `contributing`, `github`, `gitignore`, `quality`,
+`release`).
 `quality` is the local quality gate: the `Makefile` and the check scripts it runs.
 
 Each commit does one thing and leaves the repository valid. The last commit of a

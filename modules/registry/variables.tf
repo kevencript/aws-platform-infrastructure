@@ -27,7 +27,7 @@ variable "max_release_images" {
 }
 
 variable "max_other_images" {
-  description = "Other images kept, newest first, once releases and untagged images are counted out."
+  description = "Size of the window of newest images, of any kind, that an image outside the release and untagged rules must be in to be kept."
   type        = number
   default     = 20
 }

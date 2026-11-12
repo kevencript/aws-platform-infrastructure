@@ -63,3 +63,4 @@ subnets, with no password anywhere in code, a plan or the state.
 | `postgres_master_secret_arn` | The master secret, for the migration job |
 | `redis_primary_endpoint`, `redis_reader_endpoint`, `redis_app_username` | Where and as whom the API connects to Redis |
 | `app_policy_json`, `migrator_policy_json` | Permissions for the two IRSA roles |
+| `postgres_identifier`, `redis_replication_group_id` | Dimensions of their CloudWatch metrics |

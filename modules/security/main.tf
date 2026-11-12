@@ -19,7 +19,7 @@ locals {
 
   groups = {
     alb   = "Load balancer: HTTPS and HTTP from the internet, to the API pods"
-    node  = "EKS nodes: the API pods' connections to the data stores"
+    node  = "EKS nodes: connections from the API pods to the data stores"
     rds   = "PostgreSQL: connections from the EKS nodes only"
     redis = "Redis: connections from the EKS nodes only"
     msk   = "Kafka brokers: connections from the EKS nodes only"
@@ -52,6 +52,13 @@ resource "aws_security_group" "this" {
 
   lifecycle {
     create_before_destroy = true
+
+    # EC2 accepts only these characters in a group description, and the
+    # provider does not check them. An apostrophe would fail the apply.
+    precondition {
+      condition     = can(regex("^[a-zA-Z0-9 ._:/()#,@+=&;{}!$*\\[\\]-]*$", each.value))
+      error_message = "A security group description may contain only letters, digits, spaces and ._-:/()#,@[]+=&;{}!$*."
+    }
   }
 }
 

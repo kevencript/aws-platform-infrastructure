@@ -12,21 +12,39 @@ A case study in provisioning the infrastructure one backend microservice needs t
 in production. The service is a Node.js API that serves HTTPS traffic from the
 internet, stores data in PostgreSQL, caches in Redis and exchanges events over Kafka.
 
-The design follows three ideas:
-
-- **No secret in code or state.** RDS generates and rotates the only password in the
-  system. The API reaches the database, the cache and the broker with IAM credentials,
-  and the pipeline uses OIDC.
-- **One root module, environments as data.** `dev` and `prod` are the same code with
-  different variable values. Each runs in its own AWS account with its own state.
-- **Terraform stops at the AWS API.** A single provider, no third-party modules.
-
 The full plan is in [`docs/architecture.md`](docs/architecture.md): traffic flows,
-network layout, security group matrix, identity model and state strategy.
+network layout, security group matrix, identity model, state strategy and the
+assumptions that only an apply would confirm.
+
+## Key decisions
+
+Each one has a decision record in [`docs/adr/`](docs/adr/README.md) with the
+alternatives that were considered and what the choice costs.
+
+1. **No secret in code or state.** The only password in the system, the PostgreSQL
+   master user's, is generated, stored in Secrets Manager and rotated by RDS; Terraform
+   holds its ARN, and only the migration job's role may read it. The API signs in to
+   PostgreSQL, Redis and Kafka with short-lived IAM tokens, through an IRSA role for its
+   service account, and the pipeline assumes its roles through GitHub OIDC.
+   ([ADR 2](docs/adr/0002-iam-authentication-for-data-stores.md))
+2. **One AWS account per environment, environments as data.** `dev` and `prod` are the
+   same root module with different variable files. Each runs in its own account, with
+   its own state bucket, lock table and CI roles created by a bootstrap stack, and the
+   provider refuses credentials for any other account.
+   ([ADR 1](docs/adr/0001-one-account-per-environment.md))
+3. **Terraform stops at the AWS API.** One provider and no third-party modules.
+   Terraform owns everything public, from the certificate to the WAF, and never calls
+   Kubernetes: the cluster's API is private, and Kubernetes objects are deployed from
+   inside the VPC by a separate path.
+   ([ADR 3](docs/adr/0003-terraform-owns-the-edge.md),
+   [ADR 6](docs/adr/0006-private-cluster-endpoint.md))
+
+The other records cover the security group matrix, the pipeline's apply role and why
+pull request plans run without the state lock.
 
 ## Status
 
-The project is delivered in batches, one per knowledge area. See the
+The project is delivered in batches, one per platform area. See the
 [delivery roadmap](docs/architecture.md#delivery-roadmap) and the
 [changelog](CHANGELOG.md).
 
@@ -37,7 +55,7 @@ The project is delivered in batches, one per knowledge area. See the
 | `0.3.0` | Networking, security groups and compute | Released |
 | `0.4.0` | Data layer and messaging | Released |
 | `0.5.0` | Edge and observability | Released |
-| `1.0.0` | Documentation and final review | Planned |
+| `1.0.0` | Documentation and final review | In progress |
 
 ## Repository layout
 
@@ -45,9 +63,9 @@ The project is delivered in batches, one per knowledge area. See the
 .
 ├── versions.tf              # root module: Terraform, provider and backend
 ├── providers.tf             #   AWS provider, account restriction, default tags
-├── variables.tf             #   identity of the environment
-├── main.tf                  #   module wiring; today, the hosted zone lookup
-├── outputs.tf
+├── variables.tf             #   values each environment sets
+├── main.tf                  #   module wiring and the IRSA roles of the workloads
+├── outputs.tf               #   endpoints, role ARNs and names for what runs on top
 ├── modules/
 │   ├── networking/          # VPC, subnet tiers, gateways, routes, S3 endpoint, flow logs
 │   ├── security/            # every security group and the rules between them
@@ -69,6 +87,7 @@ The project is delivered in batches, one per knowledge area. See the
 ├── diagram.png              # architecture diagram, generated
 ├── docs/
 │   ├── architecture.md      # the written plan
+│   ├── adr/                 # decision records
 │   └── diagrams/            # the diagram as an Excalidraw scene, generated
 ├── .github/
 │   ├── workflows/terraform.yml   # pipeline: checks, plan on pull requests, apply on merge
@@ -82,10 +101,10 @@ Each module has a README with what it creates, its inputs and its outputs.
 
 ## How to run
 
-Nothing in this repository is applied to an AWS account. The account IDs, the domain and
-the GitHub repository in `environments/` are placeholders. What runs today is the
-quality gate; the commands for a real account are listed for completeness and have not
-been run.
+Nothing in this repository is applied to an AWS account. The account IDs, the domains,
+the GitHub repository, the cluster admin role and the alarm address in `environments/`
+are placeholders. What runs today is the quality gate, locally and in the pipeline; the
+commands for a real account are listed for completeness and have not been run.
 
 ### Quality gate
 
@@ -105,7 +124,7 @@ make check
 |------|-----------------|----------------|
 | `make fmt` | `terraform fmt -check -recursive`, and each `backend.hcl` through standard input | Canonical formatting of every `.tf`, `.tfvars` and backend file |
 | `make validate` | `terraform init -backend=false` and `terraform validate`, in the root module and in `bootstrap/` | The code is internally consistent and matches the provider schema |
-| `make environments` | `tools/check-environments.sh` | `dev` and `prod` have the same keys, and every variable file satisfies the types and validation rules of its stack |
+| `make environments` | `tools/check-environments.sh` | `dev` and `prod` have the same keys, and every variable file has the right names and types and passes the rules of its stack's own variables. The rules inside the modules run at plan time |
 | `make scan` | `trivy config`, once per environment | No misconfiguration known to the scanner. Accepted findings are ignored next to the resource, with the reason |
 
 To prove the version floor as well, point `TERRAFORM_MIN` at a Terraform 1.5 binary. It
@@ -179,6 +198,71 @@ terraform apply tfplan
 - There is no manual or scheduled trigger. IAM sees the token's subject and branch, not
   the event, so such a run on a deploy branch would also receive the apply role.
 - Every action is pinned to a commit SHA, with its version in a comment.
+
+### What an apply produces
+
+The root module's outputs are what the workloads and the people running them need.
+
+| Output | What it is for |
+|--------|----------------|
+| `api_url` | `https://<service_name>.<domain_name>` |
+| `cluster_endpoint`, `cluster_name` | The Kubernetes API, reachable from inside the VPC only |
+| `db_host`, `db_port`, `db_name` | Where the API connects to PostgreSQL, as the user named after the service |
+| `db_master_secret_arn` | The master secret, for the migration job only |
+| `redis_endpoint`, `redis_reader_endpoint`, `redis_username` | Where and as whom the API connects to Redis |
+| `msk_bootstrap_brokers` | Kafka brokers for SASL/IAM over TLS, port 9098 |
+| `app_role_arn`, `db_migrator_role_arn`, `lb_controller_role_arn` | The `eks.amazonaws.com/role-arn` annotation of each service account |
+| `target_group_name` | The target group the `TargetGroupBinding` names |
+| `ecr_repository_url` | Where the service's images are pushed |
+| `alarm_topic_arn` | The topic every alarm notifies |
+
+## What was left out, and why
+
+| Left out | Why |
+|----------|-----|
+| Kubernetes objects: the load balancer controller, the `TargetGroupBinding`, the service accounts, the migration job, the API | They are deployed from inside the VPC with the application. Keeping them out keeps Terraform on one provider and the Kubernetes API private ([ADR 6](docs/adr/0006-private-cluster-endpoint.md)) |
+| A path for people into the VPC (VPN, or a session through an instance there) | It depends on how the organisation reaches its networks |
+| Security groups for pods | Pod-level access to the data stores is enforced by IAM authentication instead ([ADR 4](docs/adr/0004-node-security-group-as-source.md)) |
+| A permissions boundary for the roles the pipeline creates | The next hardening step for the apply role; it constrains every module and cannot be exercised without an account ([ADR 5](docs/adr/0005-administrator-apply-role.md)) |
+| Interface VPC endpoints | Several per zone cost more than the NAT traffic they would save here; the free S3 gateway endpoint is in place |
+| Splitting the root state by layer | The modules are already cut along those boundaries; the split pays off with a second service or team |
+| Access logs for the load balancer and the state bucket | Each needs a bucket that cannot use the platform's keys |
+| An account baseline: CloudTrail, GuardDuty, AWS Config, ECR enhanced scanning | Account-wide services, set once per account by whoever owns it, not by one service's stack |
+| AWS Backup plans and a second Region | RDS keeps automated backups and a final snapshot, and prod spreads over three zones; surviving the loss of a Region is a separate design |
+| Container log shipping and dashboards | The alarms cover the platform; the application's logs and dashboards belong to the service |
+| Creating Kafka topics and promoting images from dev to prod | Operations of the service's own pipeline |
+| An apply against AWS | Every check is offline or in the pipeline; the plan's [open points](docs/architecture.md#open-points) list what only an apply would confirm |
+
+## Accepted trade-offs
+
+- **Dev trades resilience for cost.** One NAT gateway, single-AZ PostgreSQL and Redis,
+  and two Kafka brokers whose topics can lose acknowledged writes when a broker fails.
+- **Pull request plans are not locked**, and the prod reviewer approves before the
+  apply job plans again: what the reviewer read is the pull request's plan
+  ([ADR 7](docs/adr/0007-unlocked-pull-request-plans.md)).
+- **The apply role is an administrator of its account**, limited by who can assume it,
+  its account and Deny statements ([ADR 5](docs/adr/0005-administrator-apply-role.md)).
+- **State locking uses a DynamoDB table**, which current Terraform marks as deprecated,
+  because its replacement does not exist in Terraform 1.5.
+- **One service in one Region.**
+
+## Assumptions
+
+- Two AWS accounts exist, one per environment, and a person with administrator access
+  applies the bootstrap stack once in each. The cluster admin role named in each
+  environment's variables exists in that account.
+- A parent domain exists and delegates each environment's zone to the name servers the
+  bootstrap stack outputs.
+- The repository is public, so GitHub environments with required reviewers and branch
+  protection are available, and it issues OIDC tokens with the owner and repository IDs
+  in the subject.
+- The service listens on port 3000 and answers `GET /healthz` with 200 when it can take
+  traffic.
+- The service creates its own tokens for IAM authentication to PostgreSQL and Redis, and
+  uses Kafka topics and consumer groups whose names start with `<service_name>.`.
+- The migration job creates the service's database user with `GRANT rds_iam` before the
+  service starts.
+- Region `us-east-2`, which has the three Availability Zones prod uses.
 
 ## Contributing
 
